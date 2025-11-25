@@ -3,9 +3,13 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "scripts": {
     "dev": "vite",
     "build": "npm run build:db && vite build",
+    "build:app": "vite build",
     "build:db": "node scripts/buildDatabase.js",
     "preview": "vite preview"
   },
