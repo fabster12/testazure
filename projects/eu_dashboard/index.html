@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>EU Modernisation Dashboard</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+     crossorigin=""/>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              'primary': 'rgb(var(--color-primary) / <alpha-value>)',
+              'secondary': 'rgb(var(--color-secondary) / <alpha-value>)',
+              'accent': 'rgb(var(--color-accent) / <alpha-value>)',
+              'background': 'rgb(var(--color-background) / <alpha-value>)',
+              'surface': 'rgb(var(--color-surface) / <alpha-value>)',
+              'text-primary': 'rgb(var(--color-text-primary) / <alpha-value>)',
+              'text-secondary': 'rgb(var(--color-text-secondary) / <alpha-value>)',
+              'danger': 'rgb(var(--color-danger) / <alpha-value>)',
+              'warning': 'rgb(var(--color-warning) / <alpha-value>)',
+              'success': 'rgb(var(--color-success) / <alpha-value>)',
+              'info': 'rgb(var(--color-info) / <alpha-value>)',
+            },
+          }
+        }
+      }
+    </script>
+    <style>
+      select option {
+        background: rgb(var(--color-surface));
+        color: rgb(var(--color-text-primary));
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.28.0",
+    "clsx": "https://aistudiocdn.com/clsx@^1.2.1",
+    "d3-array": "https://aistudiocdn.com/d3-array@^3.2.4",
+    "d3-color": "https://aistudiocdn.com/d3-color@^3.1.0",
+    "d3-format": "https://aistudiocdn.com/d3-format@^3.1.0",
+    "d3-interpolate": "https://aistudiocdn.com/d3-interpolate@^3.0.1",
+    "d3-path": "https://aistudiocdn.com/d3-path@^3.1.0",
+    "d3-scale": "https://aistudiocdn.com/d3-scale@^4.0.2",
+    "d3-shape": "https://aistudiocdn.com/d3-shape@^3.2.0",
+    "d3-time": "https://aistudiocdn.com/d3-time@^3.1.0",
+    "d3-time-format": "https://aistudiocdn.com/d3-time-format@^4.1.0",
+    "eventemitter3": "https://aistudiocdn.com/eventemitter3@^5.0.1",
+    "lodash": "https://aistudiocdn.com/lodash@^4.17.21",
+    "prop-types": "https://aistudiocdn.com/prop-types@^15.8.1",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react-is": "https://aistudiocdn.com/react-is@^18.3.1",
+    "react-move": "https://aistudiocdn.com/react-move@^6.5.0",
+    "react-resize-detector": "https://aistudiocdn.com/react-resize-detector@^9.1.0",
+    "react-smooth": "https://aistudiocdn.com/react-smooth@^2.0.3",
+    "react-tooltip": "https://aistudiocdn.com/react-tooltip@^5.27.0",
+    "recharts": "https://aistudiocdn.com/recharts@^3.3.0",
+    "reselect": "https://aistudiocdn.com/reselect@^5.1.1",
+    "victory-vendor": "https://aistudiocdn.com/victory-vendor@^36.6.11",
+    "leaflet": "https://aistudiocdn.com/leaflet@^1.9.4",
+    "react-leaflet": "https://aistudiocdn.com/react-leaflet@^4.2.1"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body class="bg-background transition-colors duration-300">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

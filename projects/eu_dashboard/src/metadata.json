@@ -1,0 +1,5 @@
+{
+  "name": "EU Modernisation Dashboard",
+  "description": "An application to inventory and manage applications slated for retirement and archiving, featuring data visualization dashboards and AI-powered summaries.",
+  "requestFramePermissions": []
+}

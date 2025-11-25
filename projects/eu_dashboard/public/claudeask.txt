@@ -1,0 +1,51 @@
+https://github.com/FedEx/eai-3538647-BNLDWH.git
+
+query 1 now using json file bookings_jk.json must use new file CSV format
+01_Bookings_JK.csv which already uploaded to public\data. query  
+  1 field what was field Value01 is now fieldname BookingType
+
+query 2 now using json file track_trace_con_yl.json must use new file CSV format 
+02_TrackTraceConsignments_YL.csv which already uploaded to public\data. 
+Field Value01 is now fieldname DataEntryCountry
+Field Value02 is now fieldname OriginCountry
+Field Value03 is now fieldname DestCountry
+Field Value04 is now fieldname OpsSourceCode
+
+query 3 now using json file TRACK_TRACE_GLCON.json must use new file CSV format
+03_InvoicedConsignments_YI which already uploaded to public\data.        
+query 3 fields
+Field Value01 is now fieldname Division
+Field Value02 is now fieldname Product
+Field Value03 is now fieldname DestCountry
+
+
+  Core Data Tables (Loaded from /data/ directory)
+
+  These JSON files are loaded by duckdbService.ts:19-31:
+
+  1. CUSTOMER_ACCOUNTS_YN.json - Customer accounts data
+  2. conentry_billing.json - Contract entry billing data
+  3. invoice_corrections_ji.json - Invoice corrections
+  4. country_list.json - Country information list
+  5. exceptions_yh.json - Exception data
+  6. FIN_CONSOLIDATION_CFC.json - Financial consolidation data
+  7. bookings_jk.json - Bookings data
+  8. RATECHECKS_YQ.json - Rate checks data
+  9. revenue_by_customer.json - Revenue by customer data
+  10. track_trace_con_yl.json - Track and trace consignment data
+  11. wave_customers.json - Wave customers data
+
+  Custom Tables (Created from localStorage or schema)
+
+  These are not JSON files but tables created in memory (duckdbService.ts:34):
+
+  12. WAVES - Wave definitions (stored in localStorage as table_WAVES)
+  13. WAVE_ASSIGNMENTS - Customer-to-wave assignments (stored in localStorage as table_WAVE_ASSIGNMENTS)
+
+  Most Frequently Queried Tables
+
+  From WavePlanner.tsx:70-91:
+  - wave_customers - Main customer data with revenue metrics
+  - country_list - Country names and regional groups
+  - WAVES - Wave migration periods
+  - WAVE_ASSIGNMENTS - Customer wave assignments

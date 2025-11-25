@@ -1,0 +1,79 @@
+[
+  {
+    "COU_ID_ACC": "TH",
+    "ACC_ID": "003002444",
+    "CustomerName": "APPLE SOUTH ASIA (THAILAND)LTD",
+    "CON_COUNT": 1069,
+    "TOTAL_REV_EUR": 47280547,
+    "REV_PCT": 0.127487,
+    "CONS_PCT": 0.013263,
+    "RN": 1,
+    "WAVE": null
+  },
+  {
+    "COU_ID_ACC": "MY",
+    "ACC_ID": "003001373",
+    "CustomerName": "APPLE MALAYSIA SDN BHD - D&T",
+    "CON_COUNT": 802,
+    "TOTAL_REV_EUR": 27865067,
+    "REV_PCT": 0.075135,
+    "CONS_PCT": 0.009950,
+    "RN": 2,
+    "WAVE": null
+  },
+  {
+    "COU_ID_ACC": "AE",
+    "ACC_ID": "000223752",
+    "CustomerName": "LOUIS VUITTON EAU LLC",
+    "CON_COUNT": 188,
+    "TOTAL_REV_EUR": 18984959,
+    "REV_PCT": 0.051191,
+    "CONS_PCT": 0.002333,
+    "RN": 3,
+    "WAVE": null
+  },
+  {
+    "COU_ID_ACC": "NL",
+    "ACC_ID": "085015635",
+    "CustomerName": "SAMSUNG SDS GLOBAL SCL NL COOP",
+    "CON_COUNT": 227,
+    "TOTAL_REV_EUR": 12147253,
+    "REV_PCT": 0.032754,
+    "CONS_PCT": 0.002816,
+    "RN": 4,
+    "WAVE": null
+  },
+  {
+    "COU_ID_ACC": "SK",
+    "ACC_ID": "000027098",
+    "CustomerName": "SAMSUNG ELECTRONICS EUROPE",
+    "CON_COUNT": 94,
+    "TOTAL_REV_EUR": 9049465,
+    "REV_PCT": 0.024401,
+    "CONS_PCT": 0.001166,
+    "RN": 5,
+    "WAVE": null
+  },
+  {
+    "COU_ID_ACC": "NL",
+    "ACC_ID": "100008519",
+    "CustomerName": "DELL CO IDE VAS CENTRE ELST",
+    "CON_COUNT": 118,
+    "TOTAL_REV_EUR": 6928783,
+    "REV_PCT": 0.018683,
+    "CONS_PCT": 0.001464,
+    "RN": 6,
+    "WAVE": null
+  },
+  {
+    "COU_ID_ACC": "BT",
+    "ACC_ID": "000000088",
+    "CustomerName": "CISCO INT'L LIMITED - FRT",
+    "CON_COUNT": 68,
+    "TOTAL_REV_EUR": 4958461,
+    "REV_PCT": 0.013370,
+    "CONS_PCT": 0.000844,
+    "RN": 7,
+    "WAVE": null
+  }
+]
