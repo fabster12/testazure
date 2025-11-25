@@ -7,12 +7,12 @@ let initPromise: Promise<void> | null = null;
 
 const MANUAL_BUNDLES: duckdb.DuckDBBundles = {
   mvp: {
-    mainModule: '/node_modules/@duckdb/duckdb-wasm/dist/duckdb-mvp.wasm',
-    mainWorker: '/node_modules/@duckdb/duckdb-wasm/dist/duckdb-browser-mvp.worker.js',
+    mainModule: '/duckdb-wasm/duckdb-mvp.wasm',
+    mainWorker: '/duckdb-wasm/duckdb-browser-mvp.worker.js',
   },
   eh: {
-    mainModule: '/node_modules/@duckdb/duckdb-wasm/dist/duckdb-eh.wasm',
-    mainWorker: '/node_modules/@duckdb/duckdb-wasm/dist/duckdb-browser-eh.worker.js',
+    mainModule: '/duckdb-wasm/duckdb-eh.wasm',
+    mainWorker: '/duckdb-wasm/duckdb-browser-eh.worker.js',
   },
 };
 
