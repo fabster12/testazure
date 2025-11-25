@@ -54,6 +54,8 @@ jobs:
           api_location: ""
           output_location: "dist"
           app_build_command: "npm run build:app"
+        env:
+          VITE_GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'

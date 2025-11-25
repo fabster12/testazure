@@ -3,7 +3,15 @@
 import { GoogleGenAI } from "@google/genai";
 import { Application } from "../types";
 
-const API_KEY = process.env.API_KEY;
+// Debug: Log all environment variables
+console.log("=== Environment Variables Debug ===");
+console.log("process.env.API_KEY:", process.env.API_KEY);
+console.log("process.env.GEMINI_API_KEY:", process.env.GEMINI_API_KEY);
+console.log("import.meta.env.VITE_GEMINI_API_KEY:", import.meta.env.VITE_GEMINI_API_KEY);
+console.log("All import.meta.env:", import.meta.env);
+console.log("===================================");
+
+const API_KEY = process.env.API_KEY || import.meta.env.VITE_GEMINI_API_KEY;
 
 if (!API_KEY) {
   // This is a fallback for development environments where the key might not be set.
