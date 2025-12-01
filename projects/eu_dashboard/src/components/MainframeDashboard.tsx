@@ -3,20 +3,8 @@ import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, ComposedChart, Line } from 'recharts';
 import { MainframeBooking } from '../types';
 import { useTheme } from '../contexts/ThemeContext';
-import { IconChevronDown, IconFilter } from './icons';
-import { initDatabase, getTableAsJSON } from '../services/duckdbService';
-
-const QUERIES = [
-  { nr: 1, name: 'Bookings (JK)', code: 'bookings_jk' },
-  { nr: 2, name: 'Track & Trace Consignments (YL)', code: 'track_trace_con_yl' },
-  { nr: 3, name: 'CONENTRY - Billing', code: 'conentry_billing' },
-  { nr: 4, name: 'Invoice Corrections (JI)', code: 'invoice_corrections_ji' },
-  { nr: 5, name: 'Exceptions (YH)', code: 'exceptions_yh' },
-  { nr: 6, name: 'Ratechecks (YQ)', code: 'RATECHECKS_YQ' },
-  { nr: 7, name: 'Financial Consolidation CFC', code: 'FIN_CONSOLIDATION_CFC' },
-  { nr: 8, name: 'Revenue by Customer', code: 'revenue_by_customer' },
-  { nr: 9, name: 'Customer Accounts (YN)', code: 'CUSTOMER_ACCOUNTS_YN' },
-];
+import { useDatabaseContext } from '../contexts/DatabaseContext';
+import { IconChevronDown, IconFilter, IconCalendar } from './icons';
 
 const REVENUE_BY_CUSTOMER_CODE = 'revenue_by_customer';
 
@@ -91,20 +79,23 @@ const CustomTooltip: React.FC<any> = ({ active, payload, label, context, theme, 
 
 const MigrationDashboard: React.FC = () => {
     const { theme } = useTheme();
-    const [allData, setAllData] = useState<Record<string, MainframeBooking[]>>({});
+    // Get data from context
+    const { allData, loadingState, error, countryList, waveData, setWaveData, queries: QUERIES } = useDatabaseContext();
+
+    // UI-specific state
     const [selectedQuery, setSelectedQuery] = useState<string>('bookings_jk');
-    const [error, setError] = useState<string | null>(null);
     const [predictTrend, setPredictTrend] = useState<boolean>(false);
     const [predictWaveTrend, setPredictWaveTrend] = useState<boolean>(false);
     const [showFilters, setShowFilters] = useState(false);
     const [dateRange, setDateRange] = useState<{ start: string, end: string }>({ start: '2025-01-01', end: '' });
     const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
     const [countrySearch, setCountrySearch] = useState('');
-    const [countryList, setCountryList] = useState<{COU_ID: string, COU_NM: string, WGZ_GRP_DS: string}[]>([]);
-    const [waveData, setWaveData] = useState<{waves: any[], assignments: any[], customers: any[]}>({waves: [], assignments: [], customers: []});
     const [expandedRegions, setExpandedRegions] = useState<Record<string, boolean>>({});
     const [trendChartType, setTrendChartType] = useState<'bar' | 'line'>('bar');
-    
+
+    // Track whether success banner should be shown
+    const [showSuccessBanner, setShowSuccessBanner] = useState(true);
+
     // State for Revenue by Customer filters
     const [trendFilters, setTrendFilters] = useState({ topN: 10, metric: 'revenue' as 'revenue' | 'consignments', divisions: [] as string[] });
     const [customerFilters, setCustomerFilters] = useState({ topN: 10, metric: 'revenue' as 'revenue' | 'consignments', divisions: [] as string[] });
@@ -113,10 +104,10 @@ const MigrationDashboard: React.FC = () => {
     const [isCustomerDivisionDropdownOpen, setCustomerDivisionDropdownOpen] = useState(false);
     const trendDivisionDropdownRef = useRef<HTMLDivElement>(null);
     const customerDivisionDropdownRef = useRef<HTMLDivElement>(null);
-    
+
     // Generic TopN for other queries
     const [topNCount, setTopNCount] = useState<number>(10);
-    
+
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (trendDivisionDropdownRef.current && !trendDivisionDropdownRef.current.contains(event.target as Node)) {
@@ -132,71 +123,19 @@ const MigrationDashboard: React.FC = () => {
         };
     }, []);
 
+    // Auto-hide success banner after 2 seconds
     useEffect(() => {
-        const fetchAllData = async () => {
-            try {
-                // Initialize DuckDB
-                await initDatabase();
+        if (loadingState.phase === 'complete' && loadingState.failedQueries.length === 0) {
+            setShowSuccessBanner(true);
 
-                const responses = await Promise.allSettled(
-                    QUERIES.map(q => getTableAsJSON(q.code))
-                );
-                const newData: Record<string, MainframeBooking[]> = {};
-                const failedQueries: string[] = [];
-                responses.forEach((result, index) => {
-                    const queryCode = QUERIES[index].code;
-                    if (result.status === 'fulfilled') {
-                        newData[queryCode] = result.value;
-                    } else {
-                        console.error(`Could not load data for ${queryCode}:`, result.reason);
-                        failedQueries.push(queryCode);
-                    }
-                });
-                // Always set the data for queries that succeeded
-                setAllData(newData);
-                // Show error only if some queries failed
-                if(failedQueries.length > 0) {
-                    setError(`Could not load data for: ${failedQueries.join(', ')}`);
-                } else {
-                    setError(null);
-                }
-            } catch (err) {
-                console.error("Failed to load mainframe data files:", err);
-                setError(`Failed to load mainframe data. Please check the console.`);
-            }
-        };
-        fetchAllData();
+            const timer = setTimeout(() => {
+                setShowSuccessBanner(false);
+            }, 2000);
 
-        // Load country list from DuckDB
-        const loadCountryList = async () => {
-            try {
-                await initDatabase();
-                const data = await getTableAsJSON('country_list');
-                setCountryList(data);
-            } catch (err) {
-                console.error("Failed to load country list:", err);
-            }
-        };
-        loadCountryList();
+            return () => clearTimeout(timer);
+        }
+    }, [loadingState.phase, loadingState.failedQueries.length]);
 
-        // Load wave data from DuckDB
-        const loadWaveData = async () => {
-            try {
-                await initDatabase();
-                const waves = await getTableAsJSON('WAVES');
-                const assignments = await getTableAsJSON('WAVE_ASSIGNMENTS');
-                const customers = await getTableAsJSON('wave_customers');
-                console.log(`[Wave Data] Loaded ${waves.length} waves, ${assignments.length} assignments, ${customers.length} customers`);
-                console.log('[Wave Data] Waves:', waves);
-                console.log('[Wave Data] Sample customer:', customers[0]);
-                setWaveData({ waves, assignments, customers });
-            } catch (err) {
-                console.error("Failed to load wave data:", err);
-            }
-        };
-        loadWaveData();
-    }, []);
-    
     const allDivisions = useMemo(() => {
         const revenueData = allData[REVENUE_BY_CUSTOMER_CODE] || [];
         return Array.from(new Set(revenueData.map(d => d.value01 || 'N/A'))).sort();
@@ -329,9 +268,10 @@ const MigrationDashboard: React.FC = () => {
         setCountrySearch('');
     }
 
-    const availableQueries = useMemo<{ nr: number; name: string; code: string }[]>(() => {
-        return QUERIES.filter(q => allData[q.code] && allData[q.code].length > 0);
-    }, [allData]);
+    const availableQueries = useMemo<{ nr: number; name: string; code: string; icon: string }[]>(() => {
+        // Show all queries, even if data hasn't loaded yet (for progressive loading)
+        return QUERIES;
+    }, []);
 
     useEffect(() => {
         if ((availableQueries as any[]).length > 0 && !(availableQueries as any[]).find((q: any) => q.code === selectedQuery)) {
@@ -370,7 +310,7 @@ const MigrationDashboard: React.FC = () => {
     }, [allData, selectedQuery, dateRange, selectedCountries, allCountriesInData]);
     
     const isRevenueFormat = useMemo(() => {
-        if (!currentQueryInfo || !currentQueryInfo.name.toUpperCase().includes('CONENTRY - BILLING')) return false;
+        if (!currentQueryInfo || !currentQueryInfo.name.toUpperCase().includes('INVOICED CONSIGNMENTS (YI)')) return false;
         const relevantRecords = (allData[selectedQuery] || []).filter(d => d.value02 && String(d.value02).trim() !== '');
         if (relevantRecords.length === 0) return false;
         return relevantRecords.every(d => !isNaN(parseFloat(String(d.value02!))));
@@ -587,7 +527,7 @@ const MigrationDashboard: React.FC = () => {
             return { data: finalData, divisions: activeDivisions };
         }
 
-        const isBillingQuery = currentQueryInfo?.name.toUpperCase().includes('CONENTRY - BILLING');
+        const isBillingQuery = currentQueryInfo?.name.toUpperCase().includes('INVOICED CONSIGNMENTS (YI)');
         const trend: { [key: string]: { records: number, revenue?: number } } = {};
         filteredData.forEach(item => {
             const key = `${item.year}-${String(item.month).padStart(2, '0')}`;
@@ -729,6 +669,25 @@ const MigrationDashboard: React.FC = () => {
         return Object.entries(byType).map(([name, value]) => ({ name, value }));
     }, [filteredData, currentQueryInfo]);
 
+    const invoicedByCountryData = useMemo(() => {
+        if (currentQueryInfo?.name.toUpperCase() !== 'INVOICED CONSIGNMENTS (YI)') return [];
+        const byCountry: { [key: string]: number } = {};
+        filteredData.forEach(item => {
+            const country = item.Country?.trim();
+            if(country && countryCodeMap[country]) {
+                byCountry[country] = (byCountry[country] || 0) + item.recordCount;
+            }
+        });
+        return Object.entries(byCountry).map(([country, consignments]) => ({ country, consignments })).sort((a, b) => b.consignments - a.consignments).slice(0, topNCount);
+    }, [filteredData, topNCount, currentQueryInfo, countryCodeMap]);
+
+    const invoicedByDivisionData = useMemo(() => {
+        if (currentQueryInfo?.name.toUpperCase() !== 'INVOICED CONSIGNMENTS (YI)') return [];
+        const byDivision: { [key: string]: number } = {};
+        filteredData.forEach(item => { byDivision[item.value01 || 'N/A'] = (byDivision[item.value01 || 'N/A'] || 0) + item.recordCount; });
+        return Object.entries(byDivision).map(([name, value]) => ({ name, value }));
+    }, [filteredData, currentQueryInfo]);
+
     const topOriginCountriesData = useMemo(() => {
         if (currentQueryInfo?.name.toUpperCase() !== 'TRACK & TRACE CONSIGNMENTS (YL)') return [];
         const byCountry: { [key: string]: number } = {};
@@ -764,7 +723,7 @@ const MigrationDashboard: React.FC = () => {
     }, [filteredData, currentQueryInfo]);
 
     const billingByProductData = useMemo(() => {
-        if (!currentQueryInfo?.name.toUpperCase().includes('CONENTRY - BILLING') || isRevenueFormat) return [];
+        if (!currentQueryInfo?.name.toUpperCase().includes('INVOICED CONSIGNMENTS (YI)')) return [];
         const byProduct: { [key: string]: number } = {};
         filteredData.forEach(item => { byProduct[item.value02 || 'N/A'] = (byProduct[item.value02 || 'N/A'] || 0) + item.recordCount; });
         const sortedData = Object.entries(byProduct).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
@@ -774,24 +733,24 @@ const MigrationDashboard: React.FC = () => {
             return [...topData, { name: 'Others', value: otherValue }];
         }
         return sortedData;
-    }, [filteredData, currentQueryInfo, isRevenueFormat, topNCount]);
+    }, [filteredData, currentQueryInfo, topNCount]);
 
     const billingByBillingTypeData = useMemo(() => {
-        if (!currentQueryInfo?.name.toUpperCase().includes('CONENTRY - BILLING') || isRevenueFormat) return [];
+        if (!currentQueryInfo?.name.toUpperCase().includes('INVOICED CONSIGNMENTS (YI)')) return [];
         const byType: { [key: string]: number } = {};
         filteredData.forEach(item => { byType[item.value03 || 'N/A'] = (byType[item.value03 || 'N/A'] || 0) + item.recordCount; });
         return Object.entries(byType).map(([name, records]) => ({ name, records })).sort((a, b) => b.records - a.records).slice(0, topNCount);
-    }, [filteredData, currentQueryInfo, isRevenueFormat, topNCount]);
+    }, [filteredData, currentQueryInfo, topNCount]);
 
     const billingByCountryRevenue = useMemo(() => {
-        if (!currentQueryInfo?.name.toUpperCase().includes('CONENTRY - BILLING') || !isRevenueFormat) return [];
+        if (!currentQueryInfo?.name.toUpperCase().includes('INVOICED CONSIGNMENTS (YI)') || !isRevenueFormat) return [];
         const byCountry: { [key: string]: number } = {};
         filteredData.forEach(item => { if(item.Country && item.value02) byCountry[item.Country] = (byCountry[item.Country] || 0) + parseFloat(String(item.value02)); });
         return Object.entries(byCountry).map(([country, revenue]) => ({ country, revenue })).sort((a, b) => b.revenue - a.revenue).slice(0, topNCount);
     }, [filteredData, currentQueryInfo, isRevenueFormat, topNCount]);
     
     const billingByServiceTypeRevenue = useMemo(() => {
-        if (!currentQueryInfo?.name.toUpperCase().includes('CONENTRY - BILLING') || !isRevenueFormat) return [];
+        if (!currentQueryInfo?.name.toUpperCase().includes('INVOICED CONSIGNMENTS (YI)') || !isRevenueFormat) return [];
         const byService: { [key: string]: number } = {};
         filteredData.forEach(item => { if(item.value02) byService[item.value01 || 'N/A'] = (byService[item.value01 || 'N/A'] || 0) + parseFloat(String(item.value02)); });
         return Object.entries(byService).map(([name, value]) => ({ name, value }));
@@ -1164,63 +1123,56 @@ const MigrationDashboard: React.FC = () => {
                     </div>
                 </div>
             );
-            case 'CONENTRY - BILLING': return (
+            case 'Invoiced Consignments (YI)': return (
                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {isRevenueFormat ? (
-                        <>
-                            <div className="bg-surface p-4 rounded-lg shadow-md">
-                                <TopNSelector title="Top Revenue by Country" />
-                                <ResponsiveContainer width="100%" height={300}>
-                                    <BarChart data={billingByCountryRevenue} layout="vertical" margin={{ left: 30, right: 40 }}>
-                                        <CartesianGrid stroke={`rgb(${theme.colors['text-secondary']}/0.1)`} />
-                                        <XAxis type="number" stroke={`rgb(${theme.colors['text-secondary']})`} fontSize={12} tickFormatter={(value) => formatNumber(value, true)} />
-                                        <YAxis type="category" dataKey="country" stroke={`rgb(${theme.colors['text-secondary']})`} fontSize={10} width={100} tick={({ x, y, payload }: any) => ( <text x={x} y={y} dy={4} textAnchor="end" fill={`rgb(${theme.colors['text-secondary']})`} fontSize={10}> {countryCodeMap[payload.value] || payload.value} </text> )}/>
-                                        <Tooltip content={<CustomCountryTooltip />} cursor={{ fill: `rgb(${theme.colors.secondary}/0.1)` }} />
-                                        <Bar dataKey="revenue" fill={`rgb(${theme.colors.success})`} />
-                                    </BarChart>
-                                </ResponsiveContainer>
-                            </div>
-                             <div className="bg-surface p-4 rounded-lg shadow-md">
-                                <h3 className="text-lg font-semibold mb-4">Revenue by Service Type</h3>
-                                <ResponsiveContainer width="100%" height={300}>
-                                    <PieChart>
-                                        <Pie data={billingByServiceTypeRevenue} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label={({ value }) => formatNumber(value, true)}>
-                                            {billingByServiceTypeRevenue.map((entry, index) => ( <Cell key={`cell-${index}`} fill={theme.colors['chart-categorical'][index % theme.colors['chart-categorical'].length]} /> ))}
-                                        </Pie>
-                                        <Tooltip formatter={(value: number) => formatNumber(value, true)} contentStyle={{ backgroundColor: `rgb(${theme.colors.surface})`, borderColor: `rgb(${theme.colors.secondary}/0.2)`}}/>
-                                        <Legend />
-                                    </PieChart>
-                                </ResponsiveContainer>
-                            </div>
-                        </>
-                    ) : (
-                         <>
-                            <div className="bg-surface p-4 rounded-lg shadow-md">
-                                <TopNSelector title="Top Billing Products" />
-                                <ResponsiveContainer width="100%" height={300}>
-                                    <PieChart>
-                                        <Pie data={billingByProductData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label={({ value }) => value.toLocaleString()}>
-                                            {billingByProductData.map((entry, index) => ( <Cell key={`cell-${index}`} fill={theme.colors['chart-categorical'][index % theme.colors['chart-categorical'].length]} /> ))}
-                                        </Pie>
-                                        <Tooltip formatter={(value: number) => value.toLocaleString()} contentStyle={{ backgroundColor: `rgb(${theme.colors.surface})`, borderColor: `rgb(${theme.colors.secondary}/0.2)`}}/>
-                                        <Legend />
-                                    </PieChart>
-                                </ResponsiveContainer>
-                            </div>
-                            <div className="bg-surface p-4 rounded-lg shadow-md">
-                                <TopNSelector title="Top Billing Types" />
-                                <ResponsiveContainer width="100%" height={300}>
-                                    <BarChart data={billingByBillingTypeData} layout="vertical" margin={{ left: 30, right: 40 }}>
-                                        <CartesianGrid stroke={`rgb(${theme.colors['text-secondary']}/0.1)`} />
-                                        <XAxis type="number" stroke={`rgb(${theme.colors['text-secondary']})`} fontSize={12} tickFormatter={(value) => formatNumber(value)} />
-                                        <YAxis type="category" dataKey="name" stroke={`rgb(${theme.colors['text-secondary']})`} fontSize={10} width={100} />
-                                        <Tooltip formatter={(value: number) => value.toLocaleString()} cursor={{ fill: `rgb(${theme.colors.secondary}/0.1)` }} contentStyle={{ backgroundColor: `rgb(${theme.colors.surface})`, borderColor: `rgb(${theme.colors.secondary}/0.2)`}}/>
-                                        <Bar dataKey="records" fill={`rgb(${theme.colors.accent})`} />
-                                    </BarChart>
-                                </ResponsiveContainer>
-                            </div>
-                         </>
-                    )}
+                    <div className="bg-surface p-4 rounded-lg shadow-md">
+                        <TopNSelector title="Top Countries by Invoiced Consignments" />
+                        <ResponsiveContainer width="100%" height={300}>
+                            <BarChart data={invoicedByCountryData} layout="vertical" margin={{ left: 30, right: 40 }}>
+                                <CartesianGrid stroke={`rgb(${theme.colors['text-secondary']}/0.1)`} />
+                                <XAxis type="number" stroke={`rgb(${theme.colors['text-secondary']})`} fontSize={12} tickFormatter={(value) => formatNumber(value)} />
+                                <YAxis type="category" dataKey="country" stroke={`rgb(${theme.colors['text-secondary']})`} fontSize={10} width={100} interval={0} tick={({ x, y, payload }: any) => ( <text x={x} y={y} dy={4} textAnchor="end" fill={`rgb(${theme.colors['text-secondary']})`} fontSize={10}> {countryCodeMap[payload.value] || payload.value} </text> )}/>
+                                <Tooltip content={<CustomCountryTooltip />} cursor={{ fill: `rgb(${theme.colors.secondary}/0.1)` }} />
+                                <Bar dataKey="consignments" fill={`rgb(${theme.colors.accent})`} />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                    <div className="bg-surface p-4 rounded-lg shadow-md">
+                        <h3 className="text-lg font-semibold mb-4">Consignments by Division</h3>
+                        <ResponsiveContainer width="100%" height={300}>
+                            <PieChart>
+                                <Pie data={invoicedByDivisionData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label={({ value }) => value.toLocaleString()}>
+                                    {invoicedByDivisionData.map((entry, index) => ( <Cell key={`cell-${index}`} fill={theme.colors['chart-categorical'][index % theme.colors['chart-categorical'].length]} /> ))}
+                                </Pie>
+                                <Tooltip formatter={(value: number) => value.toLocaleString()} contentStyle={{ backgroundColor: `rgb(${theme.colors.surface})`, borderColor: `rgb(${theme.colors.secondary}/0.2)`}}/>
+                                <Legend />
+                            </PieChart>
+                        </ResponsiveContainer>
+                    </div>
+                    <div className="bg-surface p-4 rounded-lg shadow-md">
+                        <TopNSelector title="Top Products" />
+                        <ResponsiveContainer width="100%" height={300}>
+                            <PieChart>
+                                <Pie data={billingByProductData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label={({ value }) => value.toLocaleString()}>
+                                    {billingByProductData.map((entry, index) => ( <Cell key={`cell-${index}`} fill={theme.colors['chart-categorical'][index % theme.colors['chart-categorical'].length]} /> ))}
+                                </Pie>
+                                <Tooltip formatter={(value: number) => value.toLocaleString()} contentStyle={{ backgroundColor: `rgb(${theme.colors.surface})`, borderColor: `rgb(${theme.colors.secondary}/0.2)`}}/>
+                                <Legend />
+                            </PieChart>
+                        </ResponsiveContainer>
+                    </div>
+                    <div className="bg-surface p-4 rounded-lg shadow-md">
+                        <TopNSelector title="Top Billing Types" />
+                        <ResponsiveContainer width="100%" height={300}>
+                            <BarChart data={billingByBillingTypeData} layout="vertical" margin={{ left: 30, right: 40 }}>
+                                <CartesianGrid stroke={`rgb(${theme.colors['text-secondary']}/0.1)`} />
+                                <XAxis type="number" stroke={`rgb(${theme.colors['text-secondary']})`} fontSize={12} tickFormatter={(value) => formatNumber(value)} />
+                                <YAxis type="category" dataKey="name" stroke={`rgb(${theme.colors['text-secondary']})`} fontSize={10} width={100} />
+                                <Tooltip formatter={(value: number) => value.toLocaleString()} cursor={{ fill: `rgb(${theme.colors.secondary}/0.1)` }} contentStyle={{ backgroundColor: `rgb(${theme.colors.surface})`, borderColor: `rgb(${theme.colors.secondary}/0.2)`}}/>
+                                <Bar dataKey="records" fill={`rgb(${theme.colors.accent})`} />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
                 </div>
             );
             case 'INVOICE CORRECTIONS (JI)': return (
@@ -1343,34 +1295,208 @@ const MigrationDashboard: React.FC = () => {
         }
     };
 
-    return (
-        <div className="p-4 sm:p-6 lg:p-8 h-full overflow-y-auto text-text-primary bg-background">
-            <div className="flex justify-between items-start mb-4 flex-wrap gap-4">
-                <div>
-                    <h1 className="text-2xl font-semibold text-text-primary">Migration Dashboard</h1>
-                    <p className="text-sm text-text-secondary">Mainframe Data Analysis</p>
+    // Skeleton screen for loading states
+    const LoadingSkeleton = ({ phase, progress }: { phase: string, progress: number }) => (
+        <div className="flex flex-col h-screen bg-background">
+            <div className="flex-1 flex items-center justify-center">
+                <div className="text-center max-w-2xl px-6">
+                    {/* Animated skeleton boxes */}
+                    <div className="mb-8 space-y-4">
+                        <div className="h-8 bg-surface animate-pulse rounded-md w-3/4 mx-auto"></div>
+                        <div className="h-4 bg-surface animate-pulse rounded-md w-1/2 mx-auto"></div>
+                    </div>
+
+                    {/* Loading message */}
+                    {phase === 'initializing_db' && (
+                        <div className="mb-6">
+                            <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-primary mx-auto mb-4"></div>
+                            <p className="text-xl font-semibold text-text-primary mb-2">
+                                Initializing Database...
+                            </p>
+                            <p className="text-text-secondary">
+                                Loading DuckDB and preparing data files
+                            </p>
+                        </div>
+                    )}
+
+                    {phase === 'loading_priority' && (
+                        <div className="mb-6">
+                            <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-primary mx-auto mb-4"></div>
+                            <p className="text-xl font-semibold text-text-primary mb-2">
+                                Loading Primary Dataset...
+                            </p>
+                            <p className="text-text-secondary">
+                                Bookings (JK) - Preparing your dashboard
+                            </p>
+                        </div>
+                    )}
+
+                    {/* Chart skeleton placeholders */}
+                    <div className="grid grid-cols-2 gap-4 mb-6">
+                        <div className="h-32 bg-surface animate-pulse rounded-lg"></div>
+                        <div className="h-32 bg-surface animate-pulse rounded-lg"></div>
+                    </div>
+                    <div className="h-64 bg-surface animate-pulse rounded-lg mb-6"></div>
+
+                    {/* Progress bar */}
+                    <div className="w-full bg-secondary/20 rounded-full h-3 mb-2">
+                        <div
+                            className="bg-primary h-3 rounded-full transition-all duration-500"
+                            style={{ width: `${progress}%` }}
+                        ></div>
+                    </div>
+                    <p className="text-sm text-text-secondary">{progress}% complete</p>
                 </div>
-                 <div className="flex flex-wrap items-center gap-4">
-                    <div className="relative">
-                        <select value={selectedQuery} onChange={(e) => { setSelectedQuery(e.target.value); setPredictTrend(false); }} className="appearance-none bg-surface border border-secondary/20 text-text-primary text-sm rounded-md focus:ring-accent focus:border-accent block w-full p-2.5 pr-8 shadow-sm">
-                            {QUERIES.map(q => ( <option key={q.code} value={q.code}>{q.nr} - {q.name}</option> ))}
-                        </select>
-                         <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-text-secondary"><IconChevronDown className="w-4 h-4" /></div>
-                    </div>
+            </div>
+        </div>
+    );
 
-                    <div className="flex items-center gap-2 bg-surface border border-secondary/20 rounded-md p-1">
-                        <input type="date" value={dateRange.start} onChange={e => setDateRange(r => ({...r, start: e.target.value}))} className="bg-transparent text-sm text-text-primary focus:outline-none border-none p-1"/>
-                        <span className="text-text-secondary">-</span>
-                        <input type="date" value={dateRange.end} onChange={e => setDateRange(r => ({...r, end: e.target.value}))} className="bg-transparent text-sm text-text-primary focus:outline-none border-none p-1"/>
-                    </div>
+    // Show skeleton during initial loading phases (until Query 1 loads)
+    if ((loadingState.phase === 'initializing_db' || loadingState.phase === 'loading_priority')
+        && loadingState.loadedQueries.length === 0) {
+        return <LoadingSkeleton phase={loadingState.phase} progress={loadingState.progress} />;
+    }
 
-                    <button onClick={() => setShowFilters(!showFilters)} className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium ${showFilters ? 'bg-primary text-white' : 'bg-surface text-text-secondary hover:bg-secondary/20'} border border-secondary/20 shadow-sm`}>
-                        <IconFilter /> Filters ({selectedCountries.length !== allCountriesInData.length ? `${selectedCountries.length} active` : 'All'})
+    // Show error screen only if Query 1 failed
+    if (error && loadingState.loadedQueries.length === 0) {
+        return (
+            <div className="flex items-center justify-center h-screen bg-background">
+                <div className="text-center max-w-md px-6">
+                    <div className="text-6xl mb-4">⚠️</div>
+                    <h1 className="text-2xl font-bold text-text-primary mb-2">Failed to Load</h1>
+                    <p className="text-text-secondary mb-6">{error}</p>
+                    <button
+                        onClick={() => window.location.reload()}
+                        className="px-6 py-2 bg-primary text-white rounded-md hover:bg-primary/80"
+                    >
+                        Refresh Page
                     </button>
                 </div>
             </div>
+        );
+    }
 
-             {error && <div className="bg-red-900/50 border border-red-500 text-red-200 px-4 py-3 rounded-lg mb-6" role="alert"><strong className="font-bold">Error: </strong><span className="block sm:inline">{error}</span></div>}
+    return (
+        <div className="flex flex-col h-screen bg-background">
+            {/* Background Loading Banner */}
+            {loadingState.phase === 'loading_background' && (
+                <div className="bg-info/10 border-b border-info/20 px-4 py-3">
+                    <div className="flex items-center justify-between max-w-7xl mx-auto">
+                        <div className="flex items-center gap-3">
+                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-info"></div>
+                            <span className="text-sm text-text-primary">
+                                Loading additional datasets ({loadingState.loadedQueries.length}/{QUERIES.length})...
+                            </span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <div className="w-32 bg-secondary/20 rounded-full h-2">
+                                <div
+                                    className="bg-info h-2 rounded-full transition-all duration-300"
+                                    style={{ width: `${loadingState.progress}%` }}
+                                ></div>
+                            </div>
+                            <span className="text-xs text-text-secondary">{loadingState.progress}%</span>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Success Banner */}
+            {loadingState.phase === 'complete' && loadingState.failedQueries.length === 0 && showSuccessBanner && (
+                <div className="bg-success/10 border-b border-success/20 px-4 py-2 transition-opacity duration-500">
+                    <p className="text-sm text-center text-text-primary">
+                        All {QUERIES.length} datasets loaded successfully
+                    </p>
+                </div>
+            )}
+
+            {/* Warning Banner for Failed Queries */}
+            {loadingState.failedQueries.length > 0 && (
+                <div className="bg-warning/10 border-b border-warning/20 px-4 py-3">
+                    <div className="max-w-7xl mx-auto">
+                        <p className="text-sm text-text-primary">
+                            {loadingState.failedQueries.length} dataset(s) failed to load: {loadingState.failedQueries.join(', ')}
+                        </p>
+                    </div>
+                </div>
+            )}
+
+            {/* Main Content Area */}
+            <div className="flex-1 flex flex-col overflow-hidden">
+                {/* Top Bar with Filters */}
+                <div className="bg-surface border-b border-secondary/20 p-4">
+                    <div className="mb-4">
+                        <h1 className="text-xl font-semibold text-text-primary">Migration Dashboard</h1>
+                        <p className="text-xs text-text-secondary">Mainframe Data Analysis</p>
+                    </div>
+
+                    {/* Filter Panel Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+                        {/* Query Selector - Select Dropdown */}
+                        <div className="md:col-span-5">
+                            <label className="block text-xs font-medium text-text-secondary mb-1">
+                                Select Query
+                            </label>
+                            <select
+                                value={selectedQuery}
+                                onChange={e => setSelectedQuery(e.target.value)}
+                                className="w-full bg-background border-2 border-primary/50 focus:border-accent rounded-md px-3 py-2 text-sm text-text-primary focus:outline-none transition-colors cursor-pointer"
+                            >
+                                {availableQueries.map(q => {
+                                    const recordCount = allData[q.code]?.length || 0;
+                                    return (
+                                        <option key={q.code} value={q.code}>
+                                            {q.icon} {q.nr}. {q.name} ({recordCount.toLocaleString()} records)
+                                        </option>
+                                    );
+                                })}
+                            </select>
+                        </div>
+
+                        {/* Date Range */}
+                        <div className="md:col-span-4">
+                            <label className="block text-xs font-medium text-text-secondary mb-1">
+                                Date Range
+                            </label>
+                            <div className="flex items-center gap-2 bg-background border border-secondary/20 rounded-md p-2">
+                                <IconCalendar className="w-4 h-4 text-text-secondary" />
+                                <input
+                                    type="date"
+                                    value={dateRange.start}
+                                    onChange={e => setDateRange(r => ({...r, start: e.target.value}))}
+                                    className="bg-transparent text-xs text-text-primary focus:outline-none border-none flex-1"
+                                />
+                                <span className="text-text-secondary">-</span>
+                                <input
+                                    type="date"
+                                    value={dateRange.end}
+                                    onChange={e => setDateRange(r => ({...r, end: e.target.value}))}
+                                    className="bg-transparent text-xs text-text-primary focus:outline-none border-none flex-1"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Filters Button */}
+                        <div className="md:col-span-3">
+                            <button
+                                onClick={() => setShowFilters(!showFilters)}
+                                style={{ backgroundColor: showFilters ? `rgb(${theme.colors.accent})` : undefined }}
+                                className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                                    showFilters
+                                        ? 'text-white shadow-lg'
+                                        : 'bg-background text-text-secondary hover:bg-secondary/20 border border-secondary/20'
+                                }`}
+                            >
+                                <IconFilter className="w-4 h-4" />
+                                Country Filters ({selectedCountries.length !== allCountriesInData.length ? `${selectedCountries.length} active` : 'All'})
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Scrollable Content */}
+                <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+                    {error && <div className="bg-red-900/50 border border-red-500 text-red-200 px-4 py-3 rounded-lg mb-6" role="alert"><strong className="font-bold">Error: </strong><span className="block sm:inline">{error}</span></div>}
 
              {showFilters && (
                 <div className="bg-surface p-4 rounded-lg mb-6 shadow-md border border-secondary/20">
@@ -1480,7 +1606,9 @@ const MigrationDashboard: React.FC = () => {
                 </div>
             )}
 
-            {renderChartsForQuery()}
+                    {renderChartsForQuery()}
+                </div>
+            </div>
         </div>
     );
 };

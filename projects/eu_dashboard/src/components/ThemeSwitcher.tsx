@@ -29,11 +29,11 @@ const ThemeSwitcher: React.FC = () => {
       </button>
       {isOpen && (
         <div className="absolute right-0 mt-2 w-48 bg-surface rounded-md shadow-lg py-1 ring-1 ring-black ring-opacity-5 z-10 border border-secondary/20">
-          {Object.values(themes).map((themeOption) => (
+          {Object.entries(themes).map(([themeKey, themeOption]) => (
             <button
-              key={themeOption.name}
+              key={themeKey}
               onClick={() => {
-                setTheme(themeOption.name.toLowerCase());
+                setTheme(themeKey);
                 setIsOpen(false);
               }}
               className="w-full text-left px-4 py-2 text-sm text-text-primary hover:bg-secondary/30 flex items-center justify-between"

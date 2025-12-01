@@ -12,10 +12,10 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [themeName, setThemeName] = useState<string>(() => {
     try {
       const storedTheme = window.localStorage.getItem('app-theme');
-      return storedTheme && themes[storedTheme] ? storedTheme : 'dark';
+      return storedTheme && themes[storedTheme] ? storedTheme : 'fedexPurple';
     } catch (error) {
       console.warn('Could not read theme from localStorage', error)
-      return 'dark';
+      return 'fedexPurple';
     }
   });
 

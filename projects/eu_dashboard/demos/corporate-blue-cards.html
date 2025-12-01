@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Corporate Blue Theme - Card Layout</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --corp-blue: #003087;
+            --corp-blue-light: #4A90E2;
+            --corp-accent: #0099FF;
+            --bg-light: #f5f7fa;
+            --surface-white: #ffffff;
+            --text-dark: #1a202c;
+            --text-gray: #4a5568;
+            --border-light: #e2e8f0;
+            --shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-light);
+            color: var(--text-dark);
+        }
+
+        /* Header */
+        .header {
+            background: var(--surface-white);
+            box-shadow: var(--shadow);
+            padding: 0 24px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 0;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .logo {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, var(--corp-blue), var(--corp-blue-light));
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 24px;
+        }
+
+        .site-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--corp-blue);
+        }
+
+        .user-section {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .theme-dropdown {
+            padding: 8px 16px;
+            background: var(--bg-light);
+            border: 1px solid var(--border-light);
+            border-radius: 6px;
+            color: var(--text-dark);
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        /* Navigation */
+        .nav-bar {
+            display: flex;
+            gap: 4px;
+            padding: 12px 0;
+            overflow-x: auto;
+        }
+
+        .nav-tab {
+            padding: 10px 20px;
+            border-radius: 6px 6px 0 0;
+            background: transparent;
+            border: none;
+            color: var(--text-gray);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .nav-tab:hover {
+            background: var(--bg-light);
+            color: var(--corp-blue);
+        }
+
+        .nav-tab.active {
+            background: var(--corp-blue);
+            color: white;
+        }
+
+        /* Filter Bar - CRITICAL */
+        .filter-bar {
+            background: var(--surface-white);
+            padding: 20px 24px;
+            margin: 24px;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            align-items: flex-end;
+        }
+
+        .filter-item {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            min-width: 200px;
+        }
+
+        .filter-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-gray);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .filter-select {
+            padding: 12px 16px;
+            border: 2px solid var(--border-light);
+            border-radius: 8px;
+            background: white;
+            color: var(--text-dark);
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .filter-select:hover {
+            border-color: var(--corp-blue-light);
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: var(--corp-blue);
+            box-shadow: 0 0 0 3px rgba(0, 48, 135, 0.1);
+        }
+
+        .filter-btn {
+            padding: 12px 24px;
+            background: var(--corp-accent);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .filter-btn:hover {
+            background: var(--corp-blue);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 48, 135, 0.2);
+        }
+
+        /* Main Content */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        .page-header {
+            margin-bottom: 24px;
+        }
+
+        .page-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--corp-blue);
+            margin-bottom: 8px;
+        }
+
+        .page-subtitle {
+            color: var(--text-gray);
+            font-size: 16px;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: var(--surface-white);
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: var(--shadow);
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+            border-color: var(--corp-blue-light);
+        }
+
+        .stat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-gray);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, var(--corp-blue), var(--corp-blue-light));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+        }
+
+        .stat-value {
+            font-size: 36px;
+            font-weight: 700;
+            color: var(--corp-blue);
+            margin-bottom: 8px;
+        }
+
+        .stat-change {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .stat-change.positive { color: #10b981; }
+        .stat-change.negative { color: #ef4444; }
+
+        /* Chart Card */
+        .chart-card {
+            background: var(--surface-white);
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: var(--shadow);
+            margin-bottom: 24px;
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid var(--border-light);
+        }
+
+        .chart-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--corp-blue);
+        }
+
+        .chart-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .chart-btn {
+            padding: 8px 16px;
+            background: var(--bg-light);
+            border: 1px solid var(--border-light);
+            border-radius: 6px;
+            color: var(--text-gray);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .chart-btn:hover {
+            background: var(--corp-blue);
+            color: white;
+            border-color: var(--corp-blue);
+        }
+
+        .chart-area {
+            height: 350px;
+            background: var(--bg-light);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-gray);
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="header-top">
+            <div class="logo-section">
+                <div class="logo">F</div>
+                <div class="site-title">EU Migration Dashboard</div>
+            </div>
+            <div class="user-section">
+                <select class="theme-dropdown">
+                    <option>🎨 Corporate Blue</option>
+                    <option>🌙 Dark Theme</option>
+                    <option>☀️ Light Theme</option>
+                    <option>💜 FedEx Purple</option>
+                </select>
+                <button class="theme-dropdown">John Doe 👤</button>
+            </div>
+        </div>
+
+        <div class="nav-bar">
+            <button class="nav-tab active">📊 Migration Dashboard</button>
+            <button class="nav-tab">👥 Wave Planner</button>
+            <button class="nav-tab">📋 Questionnaire</button>
+            <button class="nav-tab">📦 Inventory</button>
+            <button class="nav-tab">📈 Progress</button>
+            <button class="nav-tab">🚚 Shipments</button>
+            <button class="nav-tab">⚙️ DB Maintenance</button>
+        </div>
+    </div>
+
+    <!-- Filter Bar - CRITICAL CONTROLS -->
+    <div class="filter-bar">
+        <div class="filter-item" style="flex: 2;">
+            <label class="filter-label">📊 Query Selection</label>
+            <select class="filter-select">
+                <option>Bookings (JK) - 245K records</option>
+                <option>Track & Trace Consignments (YL) - 182K records</option>
+                <option>CONENTRY - Billing - 95K records</option>
+                <option>Invoice Corrections (JI) - 12K records</option>
+                <option>Exceptions (YH) - 8K records</option>
+                <option>Ratechecks (YQ) - 156K records</option>
+                <option>Financial Consolidation CFC - 42K records</option>
+                <option>Revenue by Customer - 1.8K customers</option>
+                <option>Customer Accounts (YN) - 2.1K accounts</option>
+            </select>
+        </div>
+
+        <div class="filter-item">
+            <label class="filter-label">📅 Start Date</label>
+            <input type="date" class="filter-select" value="2025-01-01">
+        </div>
+
+        <div class="filter-item">
+            <label class="filter-label">📅 End Date</label>
+            <input type="date" class="filter-select" value="2025-12-31">
+        </div>
+
+        <button class="filter-btn">🔍 Advanced Filters</button>
+        <button class="filter-btn" style="background: #6b7280;">🔄 Reset</button>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container">
+        <div class="page-header">
+            <div class="page-title">Bookings Overview (JK)</div>
+            <div class="page-subtitle">Real-time analytics for EU mainframe migration tracking</div>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div class="stat-label">Total Bookings</div>
+                    <div class="stat-icon">📦</div>
+                </div>
+                <div class="stat-value">245,892</div>
+                <div class="stat-change positive">↑ 12.5% from last period</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div class="stat-label">Total Revenue</div>
+                    <div class="stat-icon">💰</div>
+                </div>
+                <div class="stat-value">€4.2M</div>
+                <div class="stat-change positive">↑ 8.3% from last period</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div class="stat-label">Daily Average</div>
+                    <div class="stat-icon">📊</div>
+                </div>
+                <div class="stat-value">8,196</div>
+                <div class="stat-change negative">↓ 2.1% from last period</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div class="stat-label">Active Customers</div>
+                    <div class="stat-icon">👥</div>
+                </div>
+                <div class="stat-value">1,842</div>
+                <div class="stat-change positive">↑ 5.7% from last period</div>
+            </div>
+        </div>
+
+        <!-- Chart Card -->
+        <div class="chart-card">
+            <div class="chart-header">
+                <div class="chart-title">Monthly Booking Trends</div>
+                <div class="chart-controls">
+                    <button class="chart-btn">📥 Export CSV</button>
+                    <button class="chart-btn">🖼️ Export Image</button>
+                    <button class="chart-btn">🔄 Refresh Data</button>
+                    <button class="chart-btn">⛶ Fullscreen</button>
+                </div>
+            </div>
+            <div class="chart-area">
+                📈 Interactive chart visualization (Recharts/D3)
+            </div>
+        </div>
+
+        <div class="chart-card">
+            <div class="chart-header">
+                <div class="chart-title">Revenue by Division</div>
+                <div class="chart-controls">
+                    <button class="chart-btn">📊 Table View</button>
+                    <button class="chart-btn">📥 Export</button>
+                </div>
+            </div>
+            <div class="chart-area">
+                🥧 Pie chart showing division breakdown
+            </div>
+        </div>
+    </div>
+</body>
+</html>

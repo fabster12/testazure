@@ -10,6 +10,7 @@ import ThemeSwitcher from './components/ThemeSwitcher';
 import MigrationDashboard from './components/MainframeDashboard';
 import DatabaseMaintenance from './components/DatabaseMaintenance';
 import WavePlanner from './components/WavePlanner';
+import { DatabaseProvider } from './contexts/DatabaseContext';
 
 type View = 'inventory' | 'shipmentDashboard' | 'progressDashboard' | 'initialQuestionnaire' | 'migrationDashboard' | 'dbMaintenance' | 'wavePlanner';
 
@@ -219,10 +220,12 @@ const App: React.FC = () => {
     }
 
     return (
-        <div className="h-screen w-screen text-text-primary flex flex-col">
-            <Header />
-            {renderView()}
-        </div>
+        <DatabaseProvider>
+            <div className="h-screen w-screen text-text-primary flex flex-col">
+                <Header />
+                {renderView()}
+            </div>
+        </DatabaseProvider>
     );
 };
 

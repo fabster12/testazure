@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Option 3: Grouped Categories Query Selector</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --fedex-purple: #4D148C;
+            --fedex-purple-dark: #2D0A52;
+            --fedex-orange: #FF6600;
+            --fedex-orange-hover: #FF8533;
+            --bg-dark: #1a1625;
+            --surface-dark: #2a2235;
+            --text-primary: #f9fafb;
+            --text-secondary: #d1d5db;
+            --border: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: 260px;
+            background: var(--surface-dark);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            transition: width 0.3s ease;
+            position: relative;
+        }
+
+        .sidebar.collapsed {
+            width: 70px;
+        }
+
+        .sidebar.collapsed .nav-text,
+        .sidebar.collapsed .logo-text {
+            opacity: 0;
+            width: 0;
+            overflow: hidden;
+        }
+
+        .collapse-btn {
+            position: absolute;
+            top: 20px;
+            right: -12px;
+            width: 24px;
+            height: 24px;
+            background: var(--fedex-purple);
+            border: 2px solid var(--border);
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+            transition: all 0.3s;
+            z-index: 10;
+        }
+
+        .collapse-btn:hover {
+            background: var(--fedex-orange);
+            transform: scale(1.1);
+        }
+
+        .logo {
+            padding: 20px;
+            font-size: 20px;
+            font-weight: bold;
+            color: var(--fedex-orange);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            background: var(--fedex-purple);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        .logo-text {
+            transition: opacity 0.3s, width 0.3s;
+            white-space: nowrap;
+        }
+
+        .nav {
+            flex: 1;
+            padding: 20px 0;
+            overflow-y: auto;
+        }
+
+        .nav-item {
+            padding: 12px 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: var(--text-secondary);
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .nav-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+        }
+
+        .nav-item.active {
+            background: var(--fedex-purple);
+            color: white;
+            border-left: 3px solid var(--fedex-orange);
+        }
+
+        .nav-icon {
+            width: 20px;
+            height: 20px;
+            flex-shrink: 0;
+        }
+
+        .nav-text {
+            transition: opacity 0.3s, width 0.3s;
+            white-space: nowrap;
+        }
+
+        .nav-item:hover::after {
+            content: attr(data-title);
+            position: absolute;
+            left: 100%;
+            margin-left: 10px;
+            padding: 8px 12px;
+            background: var(--surface-dark);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+            z-index: 100;
+        }
+
+        .sidebar.collapsed .nav-item:hover::after {
+            opacity: 1;
+        }
+
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .header {
+            background: var(--surface-dark);
+            border-bottom: 1px solid var(--border);
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .breadcrumb {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .theme-btn {
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-primary);
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .theme-btn:hover {
+            background: var(--fedex-purple);
+            border-color: var(--fedex-purple);
+        }
+
+        /* OPTION 3: Grouped/Categorized Query Selector */
+        .filter-panel {
+            background: var(--surface-dark);
+            border-bottom: 1px solid var(--border);
+            padding: 20px 24px;
+        }
+
+        .filter-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--fedex-orange);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .category-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 8px;
+        }
+
+        .category-tab {
+            padding: 8px 16px;
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 6px 6px 0 0;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .category-tab:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+        }
+
+        .category-tab.active {
+            background: var(--fedex-purple);
+            color: white;
+            border-color: var(--fedex-purple);
+        }
+
+        .query-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .query-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            background: var(--bg-dark);
+            border: 2px solid var(--border);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .query-item:hover {
+            border-color: var(--fedex-purple);
+            transform: translateX(4px);
+        }
+
+        .query-item.selected {
+            background: var(--fedex-purple);
+            border-color: var(--fedex-orange);
+            box-shadow: 0 0 0 3px rgba(255, 102, 0, 0.2);
+        }
+
+        .query-item-icon {
+            font-size: 24px;
+            flex-shrink: 0;
+        }
+
+        .query-item-content {
+            flex: 1;
+        }
+
+        .query-item-name {
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+
+        .query-item-stats {
+            font-size: 12px;
+            color: var(--text-secondary);
+            display: flex;
+            gap: 12px;
+        }
+
+        .query-item.selected .query-item-stats {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .query-radio {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border);
+            border-radius: 50%;
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .query-item.selected .query-radio {
+            border-color: var(--fedex-orange);
+        }
+
+        .query-item.selected .query-radio::after {
+            content: '';
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: var(--fedex-orange);
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .date-filter-row {
+            display: flex;
+            gap: 12px;
+            align-items: end;
+        }
+
+        .date-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .date-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+
+        .date-input {
+            padding: 10px 14px;
+            background: var(--bg-dark);
+            border: 2px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+
+        .date-input:focus {
+            outline: none;
+            border-color: var(--fedex-orange);
+        }
+
+        .filter-btn {
+            padding: 10px 24px;
+            background: var(--fedex-orange);
+            border: none;
+            border-radius: 6px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .filter-btn:hover {
+            background: var(--fedex-orange-hover);
+            transform: translateY(-1px);
+        }
+
+        .content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+        }
+
+        .info-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            background: rgba(77, 20, 140, 0.3);
+            border: 1px solid var(--fedex-purple);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background: var(--surface-dark);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+            transition: all 0.2s;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+            border-color: var(--fedex-purple);
+        }
+
+        .card-title {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .card-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: var(--text-primary);
+        }
+
+        .card-trend {
+            font-size: 14px;
+            color: var(--fedex-orange);
+            margin-top: 8px;
+        }
+
+        .category-content {
+            display: none;
+        }
+
+        .category-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <button class="collapse-btn" onclick="toggleSidebar()">◀</button>
+        <div class="logo">
+            <div class="logo-icon">F</div>
+            <span class="logo-text">EU Dashboard</span>
+        </div>
+        <nav class="nav">
+            <div class="nav-item active" data-title="Migration Dashboard">
+                <svg class="nav-icon" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"/>
+                </svg>
+                <span class="nav-text">Migration Dashboard</span>
+            </div>
+            <div class="nav-item" data-title="Wave Planner">
+                <svg class="nav-icon" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z"/>
+                </svg>
+                <span class="nav-text">Wave Planner</span>
+            </div>
+            <div class="nav-item" data-title="Questionnaire">
+                <svg class="nav-icon" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/>
+                </svg>
+                <span class="nav-text">Questionnaire</span>
+            </div>
+            <div class="nav-item" data-title="Inventory">
+                <svg class="nav-icon" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M7 3a1 1 0 000 2h6a1 1 0 100-2H7z"/>
+                </svg>
+                <span class="nav-text">Inventory</span>
+            </div>
+            <div class="nav-item" data-title="Progress Dashboard">
+                <svg class="nav-icon" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3z"/>
+                </svg>
+                <span class="nav-text">Progress Dashboard</span>
+            </div>
+            <div class="nav-item" data-title="DB Maintenance">
+                <svg class="nav-icon" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M2 5a2 2 0 012-2h12a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2V5z"/>
+                </svg>
+                <span class="nav-text">DB Maintenance</span>
+            </div>
+        </nav>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main">
+        <div class="header">
+            <div class="breadcrumb">Dashboard > Migration Dashboard</div>
+            <div class="header-actions">
+                <button class="theme-btn">💜 FedEx Purple</button>
+                <button class="theme-btn">⚙️ Settings</button>
+            </div>
+        </div>
+
+        <!-- OPTION 3: Grouped/Categorized Query Selector -->
+        <div class="filter-panel">
+            <div class="filter-title">
+                <span>📂 Query Selection - Option 3: Grouped by Category</span>
+            </div>
+
+            <div class="category-tabs">
+                <button class="category-tab active" onclick="showCategory('operations')">📦 Operations (5)</button>
+                <button class="category-tab" onclick="showCategory('financial')">💰 Financial (2)</button>
+                <button class="category-tab" onclick="showCategory('customer')">👥 Customer (2)</button>
+            </div>
+
+            <!-- Operations Category -->
+            <div id="operations" class="category-content active">
+                <div class="query-list">
+                    <div class="query-item selected" onclick="selectItem(this)">
+                        <div class="query-item-icon">📊</div>
+                        <div class="query-item-content">
+                            <div class="query-item-name">Bookings (JK)</div>
+                            <div class="query-item-stats">
+                                <span>245K records</span>
+                                <span>•</span>
+                                <span>Updated: Today</span>
+                            </div>
+                        </div>
+                        <div class="query-radio"></div>
+                    </div>
+
+                    <div class="query-item" onclick="selectItem(this)">
+                        <div class="query-item-icon">📦</div>
+                        <div class="query-item-content">
+                            <div class="query-item-name">Track & Trace Consignments (YL)</div>
+                            <div class="query-item-stats">
+                                <span>182K records</span>
+                                <span>•</span>
+                                <span>Updated: 2h ago</span>
+                            </div>
+                        </div>
+                        <div class="query-radio"></div>
+                    </div>
+
+                    <div class="query-item" onclick="selectItem(this)">
+                        <div class="query-item-icon">🔧</div>
+                        <div class="query-item-content">
+                            <div class="query-item-name">Invoice Corrections (JI)</div>
+                            <div class="query-item-stats">
+                                <span>12K records</span>
+                                <span>•</span>
+                                <span>Updated: Today</span>
+                            </div>
+                        </div>
+                        <div class="query-radio"></div>
+                    </div>
+
+                    <div class="query-item" onclick="selectItem(this)">
+                        <div class="query-item-icon">⚠️</div>
+                        <div class="query-item-content">
+                            <div class="query-item-name">Exceptions (YH)</div>
+                            <div class="query-item-stats">
+                                <span>8K records</span>
+                                <span>•</span>
+                                <span>Updated: 1h ago</span>
+                            </div>
+                        </div>
+                        <div class="query-radio"></div>
+                    </div>
+
+                    <div class="query-item" onclick="selectItem(this)">
+                        <div class="query-item-icon">💵</div>
+                        <div class="query-item-content">
+                            <div class="query-item-name">Ratechecks (YQ)</div>
+                            <div class="query-item-stats">
+                                <span>156K records</span>
+                                <span>•</span>
+                                <span>Updated: Today</span>
+                            </div>
+                        </div>
+                        <div class="query-radio"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Financial Category -->
+            <div id="financial" class="category-content">
+                <div class="query-list">
+                    <div class="query-item" onclick="selectItem(this)">
+                        <div class="query-item-icon">💰</div>
+                        <div class="query-item-content">
+                            <div class="query-item-name">CONENTRY - Billing</div>
+                            <div class="query-item-stats">
+                                <span>95K records</span>
+                                <span>•</span>
+                                <span>Updated: Yesterday</span>
+                            </div>
+                        </div>
+                        <div class="query-radio"></div>
+                    </div>
+
+                    <div class="query-item" onclick="selectItem(this)">
+                        <div class="query-item-icon">📈</div>
+                        <div class="query-item-content">
+                            <div class="query-item-name">Financial Consolidation CFC</div>
+                            <div class="query-item-stats">
+                                <span>42K records</span>
+                                <span>•</span>
+                                <span>Updated: Yesterday</span>
+                            </div>
+                        </div>
+                        <div class="query-radio"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Customer Category -->
+            <div id="customer" class="category-content">
+                <div class="query-list">
+                    <div class="query-item" onclick="selectItem(this)">
+                        <div class="query-item-icon">👥</div>
+                        <div class="query-item-content">
+                            <div class="query-item-name">Revenue by Customer</div>
+                            <div class="query-item-stats">
+                                <span>1.8K customers</span>
+                                <span>•</span>
+                                <span>Updated: Today</span>
+                            </div>
+                        </div>
+                        <div class="query-radio"></div>
+                    </div>
+
+                    <div class="query-item" onclick="selectItem(this)">
+                        <div class="query-item-icon">🏢</div>
+                        <div class="query-item-content">
+                            <div class="query-item-name">Customer Accounts (YN)</div>
+                            <div class="query-item-stats">
+                                <span>2.1K accounts</span>
+                                <span>•</span>
+                                <span>Updated: 3h ago</span>
+                            </div>
+                        </div>
+                        <div class="query-radio"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="date-filter-row">
+                <div class="date-group">
+                    <label class="date-label">Start Date</label>
+                    <input type="date" class="date-input" value="2025-01-01">
+                </div>
+                <div class="date-group">
+                    <label class="date-label">End Date</label>
+                    <input type="date" class="date-input" value="2025-12-31">
+                </div>
+                <button class="filter-btn">Apply Filters</button>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="info-badge">
+                ✨ Option 3: Organized by category with tabs. Browse Operations, Financial, or Customer queries. Great for finding related queries together.
+            </div>
+
+            <div class="card-grid">
+                <div class="card">
+                    <div class="card-title">Total Bookings</div>
+                    <div class="card-value">245,892</div>
+                    <div class="card-trend">↑ 12.5% vs last month</div>
+                </div>
+                <div class="card">
+                    <div class="card-title">Total Revenue</div>
+                    <div class="card-value">€4.2M</div>
+                    <div class="card-trend">↑ 8.3% vs last month</div>
+                </div>
+                <div class="card">
+                    <div class="card-title">Daily Average</div>
+                    <div class="card-value">8,196</div>
+                    <div class="card-trend">↓ 2.1% vs last month</div>
+                </div>
+                <div class="card">
+                    <div class="card-title">Active Customers</div>
+                    <div class="card-value">1,842</div>
+                    <div class="card-trend">↑ 5.7% vs last month</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const btn = document.querySelector('.collapse-btn');
+            sidebar.classList.toggle('collapsed');
+            btn.textContent = sidebar.classList.contains('collapsed') ? '▶' : '◀';
+        }
+
+        function selectItem(element) {
+            const parent = element.closest('.category-content');
+            parent.querySelectorAll('.query-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            element.classList.add('selected');
+        }
+
+        function showCategory(categoryId) {
+            // Update tabs
+            document.querySelectorAll('.category-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // Update content
+            document.querySelectorAll('.category-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(categoryId).classList.add('active');
+        }
+    </script>
+</body>
+</html>

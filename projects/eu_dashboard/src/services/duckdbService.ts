@@ -18,7 +18,7 @@ const MANUAL_BUNDLES: duckdb.DuckDBBundles = {
 
 const TABLE_NAMES = [
   'CUSTOMER_ACCOUNTS_YN',
-  'conentry_billing',
+  'invoiced_consignments_yi',
   'invoice_corrections_ji',
   'country_list',
   'exceptions_yh',
@@ -173,6 +173,288 @@ async function performInitialization(forceReload: boolean): Promise<void> {
                 outputName = 'value03';
               } else if (columnName === 'OpsSourceCode') {
                 outputName = 'value04';
+              }
+
+              if (col.data_type === 'VARCHAR') {
+                return `TRIM(${columnName}) AS ${outputName}`;
+              }
+              return `${columnName} AS ${outputName}`;
+            });
+
+            // Create final table with trimmed VARCHAR columns and renamed fields
+            await conn!.query(`CREATE TABLE ${tableName} AS SELECT ${selectClauses.join(', ')} FROM ${tableName}_temp`);
+
+            // Drop temp table
+            await conn!.query(`DROP TABLE ${tableName}_temp`);
+
+            loadedCount++;
+            console.log(`  ✓ Loaded table: ${tableName} (from CSV with field mapping)`);
+          } else if (tableName === 'invoiced_consignments_yi') {
+            // Always load from CSV file (skip localStorage for CSV-migrated tables)
+            console.log(`  - Fetching 03_InvoicedConsignments_YI.csv...`);
+            const response = await fetch(`/data/03_InvoicedConsignments_YI.csv`);
+            if (!response.ok) {
+              console.warn(`    ⚠ Skipping ${tableName}: ${response.statusText}`);
+              continue;
+            }
+            const csvData = await response.text();
+
+            console.log(`  - Registering ${tableName} from CSV...`);
+            await db!.registerFileText(`${tableName}.csv`, csvData);
+
+            console.log(`  - Creating table ${tableName}...`);
+            await conn!.query(`DROP TABLE IF EXISTS ${tableName}`);
+            await conn!.query(`CREATE TEMP TABLE ${tableName}_temp AS SELECT * FROM read_csv_auto('${tableName}.csv')`);
+
+            // Get schema to identify VARCHAR columns and rename fields
+            const schema = await conn!.query(`
+              SELECT column_name, data_type
+              FROM information_schema.columns
+              WHERE table_name='${tableName}_temp'
+            `);
+
+            const columns = schema.toArray().map(row => row.toJSON());
+            const selectClauses = columns.map((col: any) => {
+              let columnName = col.column_name;
+              let outputName = columnName;
+
+              // Map CSV column names to MainframeBooking interface
+              if (columnName === 'YearVal') {
+                outputName = 'year';
+              } else if (columnName === 'MonthVal') {
+                outputName = 'month';
+              } else if (columnName === 'RecordCount') {
+                outputName = 'recordCount';
+              } else if (columnName === 'Division') {
+                outputName = 'value01';
+              } else if (columnName === 'Product') {
+                outputName = 'value02';
+              } else if (columnName === 'BillingType') {
+                outputName = 'value03';
+              }
+
+              if (col.data_type === 'VARCHAR') {
+                return `TRIM(${columnName}) AS ${outputName}`;
+              }
+              return `${columnName} AS ${outputName}`;
+            });
+
+            // Add queryName as a literal string
+            selectClauses.unshift(`'Invoiced Consignments (YI)' AS queryName`);
+
+            // Create final table with trimmed VARCHAR columns and renamed fields
+            await conn!.query(`CREATE TABLE ${tableName} AS SELECT ${selectClauses.join(', ')} FROM ${tableName}_temp`);
+
+            // Drop temp table
+            await conn!.query(`DROP TABLE ${tableName}_temp`);
+
+            loadedCount++;
+            console.log(`  ✓ Loaded table: ${tableName} (from CSV with field mapping)`);
+          } else if (tableName === 'invoice_corrections_ji') {
+            // Always load from CSV file (skip localStorage for CSV-migrated tables)
+            console.log(`  - Fetching 04_InvoiceCorrections_JI.csv...`);
+            const response = await fetch(`/data/04_InvoiceCorrections_JI.csv`);
+            if (!response.ok) {
+              console.warn(`    ⚠ Skipping ${tableName}: ${response.statusText}`);
+              continue;
+            }
+            const csvData = await response.text();
+
+            console.log(`  - Registering ${tableName} from CSV...`);
+            await db!.registerFileText(`${tableName}.csv`, csvData);
+
+            console.log(`  - Creating table ${tableName}...`);
+            await conn!.query(`DROP TABLE IF EXISTS ${tableName}`);
+            await conn!.query(`CREATE TEMP TABLE ${tableName}_temp AS SELECT * FROM read_csv_auto('${tableName}.csv')`);
+
+            // Get schema to identify VARCHAR columns and rename fields
+            const schema = await conn!.query(`
+              SELECT column_name, data_type
+              FROM information_schema.columns
+              WHERE table_name='${tableName}_temp'
+            `);
+
+            const columns = schema.toArray().map(row => row.toJSON());
+            const selectClauses = columns.map((col: any) => {
+              let columnName = col.column_name;
+              let outputName = columnName;
+
+              // Map CSV column names to MainframeBooking interface
+              if (columnName === 'YearVal') {
+                outputName = 'year';
+              } else if (columnName === 'MonthVal') {
+                outputName = 'month';
+              } else if (columnName === 'RecordCount') {
+                outputName = 'recordCount';
+              } else if (columnName === 'BillingType') {
+                outputName = 'value01';
+              }
+
+              if (col.data_type === 'VARCHAR') {
+                return `TRIM(${columnName}) AS ${outputName}`;
+              }
+              return `${columnName} AS ${outputName}`;
+            });
+
+            // Add queryName as a literal string
+            selectClauses.unshift(`'Invoice Corrections (JI)' AS queryName`);
+
+            // Create final table with trimmed VARCHAR columns and renamed fields
+            await conn!.query(`CREATE TABLE ${tableName} AS SELECT ${selectClauses.join(', ')} FROM ${tableName}_temp`);
+
+            // Drop temp table
+            await conn!.query(`DROP TABLE ${tableName}_temp`);
+
+            loadedCount++;
+            console.log(`  ✓ Loaded table: ${tableName} (from CSV with field mapping)`);
+          } else if (tableName === 'exceptions_yh') {
+            // Always load from CSV file (skip localStorage for CSV-migrated tables)
+            console.log(`  - Fetching 05_Exceptions_YH.csv...`);
+            const response = await fetch(`/data/05_Exceptions_YH.csv`);
+            if (!response.ok) {
+              console.warn(`    ⚠ Skipping ${tableName}: ${response.statusText}`);
+              continue;
+            }
+            const csvData = await response.text();
+
+            console.log(`  - Registering ${tableName} from CSV...`);
+            await db!.registerFileText(`${tableName}.csv`, csvData);
+
+            console.log(`  - Creating table ${tableName}...`);
+            await conn!.query(`DROP TABLE IF EXISTS ${tableName}`);
+            await conn!.query(`CREATE TEMP TABLE ${tableName}_temp AS SELECT * FROM read_csv_auto('${tableName}.csv')`);
+
+            // Get schema to identify VARCHAR columns and rename fields
+            const schema = await conn!.query(`
+              SELECT column_name, data_type
+              FROM information_schema.columns
+              WHERE table_name='${tableName}_temp'
+            `);
+
+            const columns = schema.toArray().map(row => row.toJSON());
+            const selectClauses = columns.map((col: any) => {
+              let columnName = col.column_name;
+              let outputName = columnName;
+
+              // Map CSV column names to MainframeBooking interface
+              if (columnName === 'QueryName') {
+                outputName = 'queryName';
+              } else if (columnName === 'YearVal') {
+                outputName = 'year';
+              } else if (columnName === 'MonthVal') {
+                outputName = 'month';
+              } else if (columnName === 'RecordCount') {
+                outputName = 'recordCount';
+              } else if (columnName === 'OpsSourceCode') {
+                outputName = 'value01';
+              }
+
+              if (col.data_type === 'VARCHAR') {
+                return `TRIM(${columnName}) AS ${outputName}`;
+              }
+              return `${columnName} AS ${outputName}`;
+            });
+
+            // Create final table with trimmed VARCHAR columns and renamed fields
+            await conn!.query(`CREATE TABLE ${tableName} AS SELECT ${selectClauses.join(', ')} FROM ${tableName}_temp`);
+
+            // Drop temp table
+            await conn!.query(`DROP TABLE ${tableName}_temp`);
+
+            loadedCount++;
+            console.log(`  ✓ Loaded table: ${tableName} (from CSV with field mapping)`);
+          } else if (tableName === 'RATECHECKS_YQ') {
+            // Always load from CSV file (skip localStorage for CSV-migrated tables)
+            console.log(`  - Fetching 06_Ratechecks_YQ.csv...`);
+            const response = await fetch(`/data/06_Ratechecks_YQ.csv`);
+            if (!response.ok) {
+              console.warn(`    ⚠ Skipping ${tableName}: ${response.statusText}`);
+              continue;
+            }
+            const csvData = await response.text();
+
+            console.log(`  - Registering ${tableName} from CSV...`);
+            await db!.registerFileText(`${tableName}.csv`, csvData);
+
+            console.log(`  - Creating table ${tableName}...`);
+            await conn!.query(`DROP TABLE IF EXISTS ${tableName}`);
+            await conn!.query(`CREATE TEMP TABLE ${tableName}_temp AS SELECT * FROM read_csv_auto('${tableName}.csv')`);
+
+            // Get schema to identify VARCHAR columns and rename fields
+            const schema = await conn!.query(`
+              SELECT column_name, data_type
+              FROM information_schema.columns
+              WHERE table_name='${tableName}_temp'
+            `);
+
+            const columns = schema.toArray().map(row => row.toJSON());
+            const selectClauses = columns.map((col: any) => {
+              let columnName = col.column_name;
+              let outputName = columnName;
+
+              // Map CSV column names to MainframeBooking interface
+              if (columnName === 'QueryName') {
+                outputName = 'queryName';
+              } else if (columnName === 'YearVal') {
+                outputName = 'year';
+              } else if (columnName === 'MonthVal') {
+                outputName = 'month';
+              } else if (columnName === 'RecordCount') {
+                outputName = 'recordCount';
+              }
+
+              if (col.data_type === 'VARCHAR') {
+                return `TRIM(${columnName}) AS ${outputName}`;
+              }
+              return `${columnName} AS ${outputName}`;
+            });
+
+            // Create final table with trimmed VARCHAR columns and renamed fields
+            await conn!.query(`CREATE TABLE ${tableName} AS SELECT ${selectClauses.join(', ')} FROM ${tableName}_temp`);
+
+            // Drop temp table
+            await conn!.query(`DROP TABLE ${tableName}_temp`);
+
+            loadedCount++;
+            console.log(`  ✓ Loaded table: ${tableName} (from CSV with field mapping)`);
+          } else if (tableName === 'FIN_CONSOLIDATION_CFC') {
+            // Always load from CSV file (skip localStorage for CSV-migrated tables)
+            console.log(`  - Fetching 07_FinConsolidation_CFC.csv...`);
+            const response = await fetch(`/data/07_FinConsolidation_CFC.csv`);
+            if (!response.ok) {
+              console.warn(`    ⚠ Skipping ${tableName}: ${response.statusText}`);
+              continue;
+            }
+            const csvData = await response.text();
+
+            console.log(`  - Registering ${tableName} from CSV...`);
+            await db!.registerFileText(`${tableName}.csv`, csvData);
+
+            console.log(`  - Creating table ${tableName}...`);
+            await conn!.query(`DROP TABLE IF EXISTS ${tableName}`);
+            await conn!.query(`CREATE TEMP TABLE ${tableName}_temp AS SELECT * FROM read_csv_auto('${tableName}.csv')`);
+
+            // Get schema to identify VARCHAR columns and rename fields
+            const schema = await conn!.query(`
+              SELECT column_name, data_type
+              FROM information_schema.columns
+              WHERE table_name='${tableName}_temp'
+            `);
+
+            const columns = schema.toArray().map(row => row.toJSON());
+            const selectClauses = columns.map((col: any) => {
+              let columnName = col.column_name;
+              let outputName = columnName;
+
+              // Map CSV column names to MainframeBooking interface
+              if (columnName === 'QueryName') {
+                outputName = 'queryName';
+              } else if (columnName === 'YearVal') {
+                outputName = 'year';
+              } else if (columnName === 'MonthVal') {
+                outputName = 'month';
+              } else if (columnName === 'RecordCount') {
+                outputName = 'recordCount';
               }
 
               if (col.data_type === 'VARCHAR') {

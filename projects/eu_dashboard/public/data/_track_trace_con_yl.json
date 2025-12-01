@@ -1,0 +1,10 @@
+[
+{"queryName":"Track & Trace - GLCON","year":2025,"month":9,"Country":"NL","recordCount":2607,"value01":"NL","value02":"NL","value03":"GR","value04":"FX"},
+ {"queryName":"Track & Trace - GLCON","year":2025,"month":10,"Country":"NL","recordCount":1080,"value01":"NL","value02":"NL","value03":"FR","value04":"SC"},
+ {"queryName":"Track & Trace - GLCON","year":2025,"month":6,"Country":"FR","recordCount":1549,"value01":"FR","value02":"FR","value03":"PL","value04":"ED"},
+ {"queryName":"Track & Trace - GLCON","year":2025,"month":2,"Country":"NL","recordCount":1598,"value01":"NL","value02":"NL","value03":"LT","value04":"FX"},
+ {"queryName":"Track & Trace - GLCON","year":2025,"month":5,"Country":"DE","recordCount":2140,"value01":"DE","value02":"DE","value03":"DE","value04":"7I"},
+ {"queryName":"Track & Trace - GLCON","year":2025,"month":6,"Country":"FR","recordCount":1339,"value01":"CN","value02":"FR","value03":"DK","value04":"FX"},
+ {"queryName":"Track & Trace - GLCON","year":2025,"month":9,"Country":"AE","recordCount":1541,"value01":"AE","value02":"AE","value03":"QA","value04":"FX"},
+ {"queryName":"Track & Trace - GLCON","year":2025,"month":7,"Country":"SE","recordCount":1228,"value01":"SE","value02":"SE","value03":"CZ","value04":"FX"}
+ ]

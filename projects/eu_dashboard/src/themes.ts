@@ -59,4 +59,23 @@ export const themes: { [key: string]: Theme } = {
       'chart-categorical': ['#3b82f6', '#6366f1', '#ec4899', '#f97316', '#22c55e', '#38bdf8', '#8b5cf6'],
     },
   },
+  fedexPurple: {
+    name: 'FedEx Purple',
+    colors: {
+      primary: '77 20 140', // FedEx Purple #4D148C
+      secondary: '51 13 93', // Darker purple
+      accent: '255 102 0', // FedEx Orange #FF6600
+      background: '17 24 39', // Dark gray-900
+      surface: '31 41 55', // gray-800
+      'text-primary': '249 250 251', // gray-50
+      'text-secondary': '209 213 219', // gray-300
+      danger: '220 38 38', // red-600
+      warning: '255 102 0', // FedEx Orange
+      success: '34 197 94', // green-500
+      info: '147 51 234', // purple-600
+      'chart-pie': ['#4D148C', '#FF6600', '#00C49F', '#FFBB28', '#8884d8'],
+      'chart-product': { 'Domestic': '#4D148C', 'International': '#FF6600', 'Special': '#00C49F' },
+      'chart-categorical': ['#4D148C', '#7C3AED', '#FF6600', '#F97316', '#10B981', '#06B6D4', '#8B5CF6'],
+    },
+  },
 };
