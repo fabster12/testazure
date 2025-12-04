@@ -97,6 +97,8 @@ const MigrationDashboard: React.FC = () => {
     const [includeOpsSourceFX, setIncludeOpsSourceFX] = useState<boolean>(false); // Filter two: include/exclude FX ops source code
     const [selectedOpsSourceCodes, setSelectedOpsSourceCodes] = useState<string[]>([]); // Filter for all ops source codes
     const [isOpsSourceDropdownOpen, setIsOpsSourceDropdownOpen] = useState(false);
+    const [selectedBookingTypes, setSelectedBookingTypes] = useState<string[]>([]); // Filter for booking types
+    const [isBookingTypeDropdownOpen, setIsBookingTypeDropdownOpen] = useState(false);
 
     // Track whether success banner should be shown
     const [showSuccessBanner, setShowSuccessBanner] = useState(true);
@@ -169,6 +171,10 @@ const MigrationDashboard: React.FC = () => {
         setTrendFilters(f => ({ ...f, divisions: allDivisions }));
         setCustomerFilters(f => ({ ...f, divisions: allDivisions }));
     }, [allDivisions]);
+
+    useEffect(() => {
+        setIsBookingTypeDropdownOpen(false);
+    }, [selectedQuery]);
     
     const divisionColorMap = useMemo(() => {
         const colors = theme.colors['chart-categorical'];
@@ -213,6 +219,67 @@ const MigrationDashboard: React.FC = () => {
         return Object.fromEntries(Object.entries(groups).sort(([a], [b]) => a.localeCompare(b))) as Record<string, { code: string, name: string }[]>;
     }, [countryList, allCountriesInData]);
 
+    // Calculate selection status for each region (none/partial/all)
+    const regionSelectionStatus = useMemo(() => {
+        const status: Record<string, 'none' | 'partial' | 'all'> = {};
+
+        Object.entries(groupedCountries).forEach(([region, countries]) => {
+            const selectedCount = countries.filter(c => selectedCountries.includes(c.code)).length;
+            const totalCount = countries.length;
+
+            if (selectedCount === 0) {
+                status[region] = 'none';
+            } else if (selectedCount === totalCount) {
+                status[region] = 'all';
+            } else {
+                status[region] = 'partial';
+            }
+        });
+
+        return status;
+    }, [groupedCountries, selectedCountries]);
+
+    // Auto-expand regions with partial selections only
+    const autoExpandedRegions = useMemo(() => {
+        const expanded: Record<string, boolean> = {};
+
+        Object.keys(groupedCountries).forEach(region => {
+            const status = regionSelectionStatus[region];
+            expanded[region] = status === 'partial'; // Only partial
+        });
+
+        return expanded;
+    }, [groupedCountries, regionSelectionStatus]);
+
+    // Combine auto-expand with manual user overrides
+    const effectiveExpandedRegions = useMemo(() => {
+        const effective: Record<string, boolean> = { ...autoExpandedRegions };
+
+        // Manual overrides from expandedRegions take precedence
+        Object.entries(expandedRegions).forEach(([region, isExpanded]) => {
+            effective[region] = isExpanded;
+        });
+
+        return effective;
+    }, [autoExpandedRegions, expandedRegions]);
+
+    // Check if country matches search (for highlighting)
+    const getHighlightedCountryText = (countryName: string, countryCode: string, searchTerm: string) => {
+        if (!searchTerm) return { name: countryName, code: countryCode, isMatch: true };
+
+        const lowerSearch = searchTerm.toLowerCase();
+        const nameMatches = countryName.toLowerCase().includes(lowerSearch);
+        const codeMatches = countryCode.toLowerCase().includes(lowerSearch);
+
+        return {
+            name: countryName,
+            code: countryCode,
+            isMatch: nameMatches || codeMatches,
+            highlightName: nameMatches,
+            highlightCode: codeMatches
+        };
+    };
+
     const countryCounts = useMemo(() => {
         const counts: { [key: string]: number } = {};
         Object.values(allData).flat().forEach((d: MainframeBooking) => {
@@ -228,17 +295,12 @@ const MigrationDashboard: React.FC = () => {
         return counts;
     }, [allData]);
     
+    // Clear manual expand overrides when search cleared
     useEffect(() => {
-        if (countrySearch) {
-            const newExpanded: Record<string, boolean> = {};
-            Object.entries(groupedCountries).forEach(([region, countries]) => {
-                if (countries.some(c => c.name.toLowerCase().includes(countrySearch.toLowerCase()) || c.code.toLowerCase().includes(countrySearch.toLowerCase()))) {
-                    newExpanded[region] = true;
-                }
-            });
-            setExpandedRegions(newExpanded);
+        if (!countrySearch) {
+            setExpandedRegions({});
         }
-    }, [countrySearch, groupedCountries]);
+    }, [countrySearch]);
 
     const maxDate = useMemo(() => {
         const allRecords = Object.values(allData).flat();
@@ -268,8 +330,27 @@ const MigrationDashboard: React.FC = () => {
 
     useEffect(() => { setSelectedCountries(allCountriesInData); }, [allCountriesInData]);
 
-    const toggleRegion = (region: string) => setExpandedRegions(prev => ({ ...prev, [region]: !prev[region] }));
+    // Modified to respect effective expanded state
+    const toggleRegion = (region: string) => {
+        setExpandedRegions(prev => ({
+            ...prev,
+            [region]: !effectiveExpandedRegions[region]
+        }));
+    };
+
     const handleCountryFilterChange = (country: string) => setSelectedCountries(prev => prev.includes(country) ? prev.filter(c => c !== country) : [...prev, country]);
+
+    // Select all countries in region
+    const handleSelectRegion = (regionCountryCodes: string[], e: React.MouseEvent) => {
+        e.stopPropagation();
+        setSelectedCountries(prev => Array.from(new Set([...prev, ...regionCountryCodes])));
+    };
+
+    // Clear all countries in region
+    const handleClearRegion = (regionCountryCodes: string[], e: React.MouseEvent) => {
+        e.stopPropagation();
+        setSelectedCountries(prev => prev.filter(code => !regionCountryCodes.includes(code)));
+    };
     const handleTrendDivisionFilterChange = (division: string) => setTrendFilters(f => ({...f, divisions: f.divisions.includes(division) ? f.divisions.filter(d => d !== division) : [...f.divisions, division]}));
     const handleCustomerDivisionFilterChange = (division: string) => setCustomerFilters(f => ({...f, divisions: f.divisions.includes(division) ? f.divisions.filter(d => d !== division) : [...f.divisions, division]}));
     
@@ -291,6 +372,8 @@ const MigrationDashboard: React.FC = () => {
         setCustomerFilters(f => ({ ...f, divisions: allDivisions }));
         setCountrySearch('');
         setIncludeOpsSourceFX(false); // Reset to default (exclude FX)
+        setSelectedOpsSourceCodes([]); // Reset ops source code filter
+        setSelectedBookingTypes([]); // Reset booking type filter
     }
 
     const availableQueries = useMemo<{ nr: number; name: string; code: string; icon: string }[]>(() => {
@@ -364,8 +447,20 @@ const MigrationDashboard: React.FC = () => {
                 return true;
             });
         }
+
+        // Filter four: Booking Type filter (for bookings_jk)
+        if (selectedBookingTypes.length > 0 && selectedQuery === 'bookings_jk') {
+            const typeSet = new Set(selectedBookingTypes);
+            data = data.filter(item => {
+                if (item.value01) {
+                    return typeSet.has(String(item.value01).trim());
+                }
+                return false;
+            });
+        }
+
         return data;
-    }, [allData, selectedQuery, dateRange, selectedCountries, allCountriesInData, includeOpsSourceFX, selectedOpsSourceCodes]);
+    }, [allData, selectedQuery, dateRange, selectedCountries, allCountriesInData, includeOpsSourceFX, selectedOpsSourceCodes, selectedBookingTypes]);
     
     const isRevenueFormat = useMemo(() => {
         if (!currentQueryInfo || !currentQueryInfo.name.toUpperCase().includes('INVOICED CONSIGNMENTS (YI)')) return false;
@@ -932,6 +1027,19 @@ const MigrationDashboard: React.FC = () => {
         }
 
         return Array.from(codes).sort();
+    }, [allData, selectedQuery]);
+
+    // Get all available booking types from the current data (before filtering)
+    const availableBookingTypes = useMemo(() => {
+        if (selectedQuery !== 'bookings_jk') return [];
+        let data = allData[selectedQuery] || [];
+        const types = new Set<string>();
+
+        data.forEach(item => {
+            if (item.value01) types.add(String(item.value01).trim());
+        });
+
+        return Array.from(types).sort();
     }, [allData, selectedQuery]);
 
     const opsSourceCodeData = useMemo(() => {
@@ -1701,7 +1809,61 @@ const MigrationDashboard: React.FC = () => {
                         </ResponsiveContainer>
                     </div>
                     <div className="bg-surface p-4 rounded-lg shadow-md">
-                        <h3 className="text-lg font-semibold mb-4">Bookings by Type</h3>
+                        <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
+                            <h3 className="text-lg font-semibold">Bookings by Type</h3>
+                            {availableBookingTypes.length > 0 && (
+                                <div className="relative">
+                                    <button
+                                        onClick={() => setIsBookingTypeDropdownOpen(!isBookingTypeDropdownOpen)}
+                                        className="flex items-center gap-2 px-3 py-1.5 bg-background text-text-secondary border border-secondary/20 rounded-md hover:bg-secondary/10 text-xs"
+                                    >
+                                        <IconFilter className="w-3 h-3" />
+                                        <span>{selectedBookingTypes.length === 0 ? 'All Types' : `${selectedBookingTypes.length} Selected`}</span>
+                                        <IconChevronDown className={`w-3 h-3 transition-transform ${isBookingTypeDropdownOpen ? 'rotate-180' : ''}`} />
+                                    </button>
+                                    {isBookingTypeDropdownOpen && (
+                                        <div className="absolute right-0 mt-2 w-56 bg-surface border border-secondary/20 rounded-md shadow-lg z-50 max-h-64 overflow-y-auto">
+                                            <div className="p-2 border-b border-secondary/20 flex gap-2">
+                                                <button
+                                                    onClick={() => setSelectedBookingTypes(availableBookingTypes)}
+                                                    className="flex-1 text-xs px-2 py-1 bg-background hover:bg-secondary/10 rounded"
+                                                >
+                                                    Select All
+                                                </button>
+                                                <button
+                                                    onClick={() => setSelectedBookingTypes([])}
+                                                    className="flex-1 text-xs px-2 py-1 bg-background hover:bg-secondary/10 rounded"
+                                                >
+                                                    Clear
+                                                </button>
+                                            </div>
+                                            <div className="p-2">
+                                                {availableBookingTypes.map(type => (
+                                                    <label
+                                                        key={type}
+                                                        className="flex items-center p-2 hover:bg-secondary/10 rounded cursor-pointer"
+                                                    >
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={selectedBookingTypes.includes(type)}
+                                                            onChange={(e) => {
+                                                                if (e.target.checked) {
+                                                                    setSelectedBookingTypes([...selectedBookingTypes, type]);
+                                                                } else {
+                                                                    setSelectedBookingTypes(selectedBookingTypes.filter(t => t !== type));
+                                                                }
+                                                            }}
+                                                            className="h-4 w-4 rounded border-gray-500 text-accent focus:ring-accent"
+                                                        />
+                                                        <span className="ml-2 text-sm text-text-primary">{type}</span>
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
                         <ResponsiveContainer width="100%" height={300}>
                             <PieChart>
                                 <Pie data={bookingTypeData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label={({ value }) => value.toLocaleString()}>
@@ -2271,60 +2433,115 @@ const MigrationDashboard: React.FC = () => {
                              <button onClick={resetFilters} className="text-xs text-text-secondary hover:text-text-primary hover:underline ml-4">Reset All Filters</button>
                         </div>
                      </div>
-                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 max-h-48 overflow-y-auto">
+                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                         {Object.entries(groupedCountries).map(([region, countries]) => {
-                            const filteredCountries = countries.filter(c => c.name.toLowerCase().includes(countrySearch.toLowerCase()) || c.code.toLowerCase().includes(countrySearch.toLowerCase()));
+                            const filteredCountries = countrySearch
+                                ? countries.filter(c =>
+                                    c.name.toLowerCase().includes(countrySearch.toLowerCase()) ||
+                                    c.code.toLowerCase().includes(countrySearch.toLowerCase())
+                                  )
+                                : countries;
+
                             if (countrySearch && filteredCountries.length === 0) return null;
-                            const displayCountries = countrySearch ? filteredCountries : countries;
-                            
-                            const allSelected = displayCountries.every(c => selectedCountries.includes(c.code));
-                            const someSelected = displayCountries.some(c => selectedCountries.includes(c.code));
+
+                            const displayCountries = filteredCountries;
+                            const regionStatus = regionSelectionStatus[region];
+                            const isExpanded = effectiveExpandedRegions[region];
+                            const regionCountryCodes = displayCountries.map(c => c.code);
+                            const selectedInRegion = displayCountries.filter(c => selectedCountries.includes(c.code)).length;
+                            const totalInRegion = displayCountries.length;
 
                             return (
                                 <div key={region} className="border border-secondary/20 rounded-md overflow-hidden">
-                                     <div className="bg-secondary/10 px-3 py-2 flex justify-between items-center cursor-pointer" onClick={() => toggleRegion(region)}>
-                                        <span className="font-medium text-sm">{region} ({displayCountries.length})</span>
-                                        <div className="flex items-center gap-2">
-                                            <input type="checkbox" checked={allSelected} ref={input => { if(input) input.indeterminate = someSelected && !allSelected }} onChange={(e) => { e.stopPropagation(); handleRegionToggle(displayCountries.map(c => c.code))}} className="h-4 w-4 rounded border-gray-500 text-accent focus:ring-accent" />
-                                            <IconChevronDown className={`w-4 h-4 transition-transform ${expandedRegions[region] ? 'rotate-180' : ''}`} />
+                                    <div
+                                        className="bg-secondary/10 px-4 py-3 flex items-center gap-3 cursor-pointer hover:bg-secondary/20 transition-colors"
+                                        onClick={() => toggleRegion(region)}
+                                    >
+                                        <input
+                                            type="checkbox"
+                                            checked={regionStatus === 'all'}
+                                            ref={input => { if (input) input.indeterminate = regionStatus === 'partial' }}
+                                            onChange={(e) => { e.stopPropagation(); handleRegionToggle(regionCountryCodes); }}
+                                            className="h-5 w-5 rounded border-gray-500 text-accent focus:ring-accent flex-shrink-0"
+                                        />
+                                        <div className="flex-1 flex items-center gap-2">
+                                            <span className="font-semibold text-base text-text-primary">{region}</span>
+                                            <span className="text-sm text-text-secondary">
+                                                ({totalInRegion} {totalInRegion === 1 ? 'country' : 'countries'})
+                                            </span>
+                                            {selectedInRegion > 0 && (
+                                                <span className="text-sm font-medium" style={{ color: `rgb(${theme.colors.accent})` }}>
+                                                    — {selectedInRegion} selected
+                                                </span>
+                                            )}
                                         </div>
-                                     </div>
-                                     {expandedRegions[region] && (
-                                        <div className="p-2 bg-background">
-                                            {displayCountries.map(c => (
-                                                <label key={c.code} className="flex items-center p-1 hover:bg-secondary/10 rounded cursor-pointer">
-                                                    <input type="checkbox" checked={selectedCountries.includes(c.code)} onChange={() => handleCountryFilterChange(c.code)} className="h-3 w-3 rounded border-gray-500 text-accent focus:ring-accent" />
-                                                    <span className="ml-2 text-xs text-text-secondary truncate" title={c.name}>{c.name} ({c.code})</span>
-                                                </label>
-                                            ))}
+                                        <button
+                                            onClick={(e) => {
+                                                if (regionStatus === 'all') {
+                                                    handleClearRegion(regionCountryCodes, e);
+                                                } else {
+                                                    handleSelectRegion(regionCountryCodes, e);
+                                                }
+                                            }}
+                                            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors flex-shrink-0 ${
+                                                regionStatus === 'all'
+                                                    ? 'bg-secondary/30 hover:bg-secondary/40 text-text-primary border border-secondary/40'
+                                                    : 'text-white hover:opacity-90 border border-transparent'
+                                            }`}
+                                            style={
+                                                regionStatus === 'all'
+                                                    ? {}
+                                                    : { backgroundColor: `rgb(${theme.colors.accent})` }
+                                            }
+                                        >
+                                            {regionStatus === 'all' ? 'Clear Region' : 'Select Region'}
+                                        </button>
+                                        <IconChevronDown
+                                            className={`w-5 h-5 transition-transform flex-shrink-0 text-text-secondary ${
+                                                isExpanded ? 'rotate-180' : ''
+                                            }`}
+                                        />
+                                    </div>
+                                    {isExpanded && (
+                                        <div className="p-4 bg-background">
+                                            <div className="flex flex-wrap gap-x-6 gap-y-2">
+                                                {displayCountries.map(c => {
+                                                    const highlight = getHighlightedCountryText(c.name, c.code, countrySearch);
+
+                                                    return (
+                                                        <label
+                                                            key={c.code}
+                                                            className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
+                                                            style={{ minWidth: '200px', maxWidth: '280px' }}
+                                                        >
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={selectedCountries.includes(c.code)}
+                                                                onChange={() => handleCountryFilterChange(c.code)}
+                                                                className="h-4 w-4 rounded border-gray-500 text-accent focus:ring-accent flex-shrink-0"
+                                                            />
+                                                            <span
+                                                                className={`text-sm truncate ${
+                                                                    highlight.isMatch && countrySearch ? 'font-semibold' : ''
+                                                                }`}
+                                                                style={{
+                                                                    color: highlight.isMatch && countrySearch
+                                                                        ? `rgb(${theme.colors.accent})`
+                                                                        : `rgb(${theme.colors['text-secondary']})`
+                                                                }}
+                                                                title={`${c.name} (${c.code})`}
+                                                            >
+                                                                {c.name} ({c.code})
+                                                            </span>
+                                                        </label>
+                                                    );
+                                                })}
+                                            </div>
                                         </div>
-                                     )}
+                                    )}
                                 </div>
                             );
                         })}
-                     </div>
-
-                     {/* Ops Source Code FX Filter */}
-                     <div className="mt-4 pt-4 border-t border-secondary/20">
-                         <div className="flex items-center justify-between">
-                             <div>
-                                 <h3 className="font-medium text-text-primary">Ops Source Code Filter</h3>
-                                 <p className="text-xs text-text-secondary mt-1">Include or exclude FX ops source code</p>
-                             </div>
-                             <label className="flex items-center gap-3 cursor-pointer">
-                                 <span className="text-sm text-text-secondary">Exclude FX</span>
-                                 <div className="relative">
-                                     <input
-                                         type="checkbox"
-                                         checked={includeOpsSourceFX}
-                                         onChange={(e) => setIncludeOpsSourceFX(e.target.checked)}
-                                         className="sr-only peer"
-                                     />
-                                     <div className="w-11 h-6 bg-secondary/30 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-accent rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
-                                 </div>
-                                 <span className="text-sm text-text-secondary">Include FX</span>
-                             </label>
-                         </div>
                      </div>
                 </div>
              )}
