@@ -27,7 +27,9 @@ const TABLE_NAMES = [
   'RATECHECKS_YQ',
   'revenue_by_customer',
   'track_trace_con_yl',
-  'wave_customers'
+  'wave_customers',
+  'total_revenue',
+  'customer_revenue'
 ];
 
 // Tables that will be created from localStorage or schema
@@ -165,6 +167,8 @@ async function performInitialization(forceReload: boolean): Promise<void> {
                 outputName = 'month';
               } else if (columnName === 'RecordCount') {
                 outputName = 'recordCount';
+              } else if (columnName === 'Country') {
+                outputName = 'value01';
               } else if (columnName === 'DataEntryCountry') {
                 outputName = 'value01';
               } else if (columnName === 'OriginCountry') {
@@ -471,6 +475,132 @@ async function performInitialization(forceReload: boolean): Promise<void> {
 
             loadedCount++;
             console.log(`  ✓ Loaded table: ${tableName} (from CSV with field mapping)`);
+          } else if (tableName === 'total_revenue') {
+            // Load from CSV file
+            console.log(`  - Fetching 81_TotalRevenue.csv...`);
+            const response = await fetch(`/data/81_TotalRevenue.csv`);
+            if (!response.ok) {
+              console.warn(`    ⚠ Skipping ${tableName}: ${response.statusText}`);
+              continue;
+            }
+            const csvData = await response.text();
+
+            console.log(`  - Registering ${tableName} from CSV...`);
+            await db!.registerFileText(`${tableName}.csv`, csvData);
+
+            console.log(`  - Creating table ${tableName}...`);
+            await conn!.query(`DROP TABLE IF EXISTS ${tableName}`);
+            await conn!.query(`CREATE TEMP TABLE ${tableName}_temp AS SELECT * FROM read_csv_auto('${tableName}.csv')`);
+
+            // Get schema to identify VARCHAR columns
+            const schema = await conn!.query(`
+              SELECT column_name, data_type
+              FROM information_schema.columns
+              WHERE table_name='${tableName}_temp'
+            `);
+
+            const columns = schema.toArray().map(row => row.toJSON());
+            const selectClauses = columns.map((col: any) => {
+              let columnName = col.column_name;
+              let outputName = columnName;
+
+              // Map CSV column names
+              if (columnName === 'YearVal') {
+                outputName = 'year';
+              } else if (columnName === 'MonthVal') {
+                outputName = 'month';
+              } else if (columnName === 'RecordCount') {
+                outputName = 'recordCount';
+              } else if (columnName === 'Country') {
+                outputName = 'value01';
+              } else if (columnName === 'Division') {
+                outputName = 'value02';
+              } else if (columnName === 'Revenue_EUR') {
+                outputName = 'value03';
+              }
+
+              if (col.data_type === 'VARCHAR') {
+                return `TRIM(${columnName}) AS ${outputName}`;
+              }
+              return `${columnName} AS ${outputName}`;
+            });
+
+            // Add queryName as a literal string
+            selectClauses.unshift(`'Total Revenue' AS queryName`);
+
+            // Create final table with trimmed VARCHAR columns and renamed fields
+            await conn!.query(`CREATE TABLE ${tableName} AS SELECT ${selectClauses.join(', ')} FROM ${tableName}_temp`);
+
+            // Drop temp table
+            await conn!.query(`DROP TABLE ${tableName}_temp`);
+
+            loadedCount++;
+            console.log(`  ✓ Loaded table: ${tableName} (from CSV with field mapping)`);
+          } else if (tableName === 'customer_revenue') {
+            // Load from CSV file
+            console.log(`  - Fetching 82_CustomerRevenue.csv...`);
+            const response = await fetch(`/data/82_CustomerRevenue.csv`);
+            if (!response.ok) {
+              console.warn(`    ⚠ Skipping ${tableName}: ${response.statusText}`);
+              continue;
+            }
+            const csvData = await response.text();
+
+            console.log(`  - Registering ${tableName} from CSV...`);
+            await db!.registerFileText(`${tableName}.csv`, csvData);
+
+            console.log(`  - Creating table ${tableName}...`);
+            await conn!.query(`DROP TABLE IF EXISTS ${tableName}`);
+            await conn!.query(`CREATE TEMP TABLE ${tableName}_temp AS SELECT * FROM read_csv_auto('${tableName}.csv')`);
+
+            // Get schema to identify VARCHAR columns
+            const schema = await conn!.query(`
+              SELECT column_name, data_type
+              FROM information_schema.columns
+              WHERE table_name='${tableName}_temp'
+            `);
+
+            const columns = schema.toArray().map(row => row.toJSON());
+            const selectClauses = columns.map((col: any) => {
+              let columnName = col.column_name;
+              let outputName = columnName;
+
+              // Map CSV column names
+              if (columnName === 'YearVal') {
+                outputName = 'year';
+              } else if (columnName === 'MonthVal') {
+                outputName = 'month';
+              } else if (columnName === 'RecordCount') {
+                outputName = 'recordCount';
+              } else if (columnName === 'Country') {
+                outputName = 'value01';
+              } else if (columnName === 'Division') {
+                outputName = 'value02';
+              } else if (columnName === 'CustomerName') {
+                outputName = 'value03';
+              } else if (columnName === 'Revenue_EUR') {
+                outputName = 'value04';
+              } else if (columnName === 'Customer_Total_Revenue') {
+                outputName = 'value05';
+              }
+
+              if (col.data_type === 'VARCHAR') {
+                return `TRIM(${columnName}) AS ${outputName}`;
+              }
+              return `${columnName} AS ${outputName}`;
+            });
+
+            // Add queryName as a literal string
+            selectClauses.unshift(`'Customer Revenue' AS queryName`);
+
+            // Create final table with trimmed VARCHAR columns and renamed fields
+            await conn!.query(`CREATE TABLE ${tableName} AS SELECT ${selectClauses.join(', ')} FROM ${tableName}_temp`);
+
+            // Drop temp table
+            await conn!.query(`DROP TABLE ${tableName}_temp`);
+
+            loadedCount++;
+            console.log(`  ✓ Loaded table: ${tableName} (from CSV with field mapping)`);
           } else {
             // Standard JSON loading for other tables
             // Check if there's updated data in localStorage first
@@ -545,7 +675,11 @@ async function performInitialization(forceReload: boolean): Promise<void> {
         await conn!.query(`DROP TABLE IF EXISTS WAVES`);
 
         // Create with trimmed VARCHAR columns
-        await conn!.query(`CREATE TABLE WAVES AS SELECT
+        await conn!.query(`CREATE TABLE WAVES AS
+        WITH source_data AS (
+          SELECT * FROM read_json_auto('WAVES.json')
+        )
+        SELECT
           WAVE_ID,
           TRIM(WAVE_NAME) AS WAVE_NAME,
           YEAR,
@@ -555,7 +689,7 @@ async function performInitialization(forceReload: boolean): Promise<void> {
           CAST(COALESCE(TRY_CAST(CONSIGNMENTS_PCT AS DOUBLE), 0.0) AS DOUBLE) AS CONSIGNMENTS_PCT,
           CAST(COALESCE(TRY_CAST(REVENUE_TOTAL AS DOUBLE), 0.0) AS DOUBLE) AS REVENUE_TOTAL,
           CAST(COALESCE(TRY_CAST(REVENUE_PCT AS DOUBLE), 0.0) AS DOUBLE) AS REVENUE_PCT
-        FROM read_json_auto('WAVES.json')`);
+        FROM source_data`);
         console.log(`  ✓ Loaded WAVES table (${waves.length} waves)`);
       } else {
         await conn!.query(`DROP TABLE IF EXISTS WAVES`);

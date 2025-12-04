@@ -10,7 +10,9 @@ const QUERIES = [
   { nr: 5, name: 'Exceptions (YH)', code: 'exceptions_yh', icon: '⚠️' },
   { nr: 6, name: 'Ratechecks (YQ)', code: 'RATECHECKS_YQ', icon: '💵' },
   { nr: 7, name: 'Financial Consolidation CFC', code: 'FIN_CONSOLIDATION_CFC', icon: '📈' },
-  { nr: 8, name: 'Revenue by Customer', code: 'revenue_by_customer', icon: '👥' },
+  // { nr: 8, name: 'Revenue by Customer', code: 'revenue_by_customer', icon: '👥' }, // Hidden - can be restored easily
+  { nr: 8.1, name: 'Total Revenue', code: 'total_revenue', icon: '💎' },
+  { nr: 8.2, name: 'Customer Revenue', code: 'customer_revenue', icon: '👤' },
   { nr: 9, name: 'Customer Accounts (YN)', code: 'CUSTOMER_ACCOUNTS_YN', icon: '🏢' },
 ];
 
