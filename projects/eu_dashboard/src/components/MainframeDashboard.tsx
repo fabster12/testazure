@@ -325,6 +325,9 @@ const MigrationDashboard: React.FC = () => {
             const countrySet = new Set(selectedCountries);
             data = data.filter(item => {
                 if (item.Country && countrySet.has(item.Country)) return true;
+                if (selectedQuery === 'track_trace_con_yl') {
+                    if (item.value01 && countrySet.has(item.value01)) return true;
+                }
                 if (item.queryName && item.queryName.toUpperCase() === 'TRACK & TRACE - GLCON') {
                     if ((item.value01 && countrySet.has(item.value01)) || (item.value02 && countrySet.has(item.value02)) || (item.value03 && countrySet.has(item.value03))) return true;
                 }
@@ -1420,7 +1423,12 @@ const MigrationDashboard: React.FC = () => {
                                 <XAxis dataKey="month" stroke={`rgb(${theme.colors['text-secondary']})`} fontSize={12} />
                                 <YAxis yAxisId="left" label={{ value: swapAxes ? 'Consignments' : 'Revenue (€)', angle: -90, position: 'left', offset: 10, fill: `rgb(${theme.colors['text-secondary']})` }} stroke={swapAxes ? `rgb(${theme.colors['text-secondary']})` : `rgb(${theme.colors.success})`} tickFormatter={(value) => swapAxes ? formatNumber(value) : formatNumber(value, true)} />
                                 <YAxis yAxisId="right" orientation="right" label={{ value: swapAxes ? 'Revenue (€)' : 'Consignments', angle: 90, position: 'right', offset: 10, fill: `rgb(${theme.colors['text-secondary']})` }} stroke={swapAxes ? `rgb(${theme.colors.success})` : `rgb(${theme.colors['text-secondary']})`} tickFormatter={val => swapAxes ? formatNumber(val, true) : formatNumber(val)} />
-                                <Tooltip />
+                                <Tooltip formatter={(value: number, name: string) => {
+                                    if (name.includes('Revenue') || name.includes('revenue') || name.includes('Predicted Revenue')) {
+                                        return `€${typeof value === 'number' ? value.toLocaleString(undefined, { maximumFractionDigits: 0 }) : value}`;
+                                    }
+                                    return typeof value === 'number' ? value.toLocaleString() : value;
+                                }} contentStyle={{ backgroundColor: `rgb(${theme.colors.surface})`, borderColor: `rgb(${theme.colors.secondary}/0.2)`}} />
                                 <Legend wrapperStyle={{ paddingTop: '10px' }} payload={swapAxes ? [
                                     { value: 'Consignments', type: trendChartType === 'bar' ? 'rect' : 'line', id: 'records', color: `rgb(${theme.colors.accent})` },
                                     { value: 'Revenue (€)', type: 'line', id: 'revenue', color: `rgb(${theme.colors.success})` }
@@ -1469,7 +1477,12 @@ const MigrationDashboard: React.FC = () => {
                                 <XAxis dataKey="country" stroke={`rgb(${theme.colors['text-secondary']})`} fontSize={10} tick={({ x, y, payload }: any) => ( <text x={x} y={y} dy={16} textAnchor="middle" fill={`rgb(${theme.colors['text-secondary']})`} fontSize={10}> {countryCodeMap[payload.value] || payload.value} </text> )}/>
                                 <YAxis yAxisId="left" stroke={`rgb(${theme.colors.success})`} fontSize={12} tickFormatter={(value) => formatNumber(value, true)} label={{ value: 'Revenue (€)', angle: -90, position: 'insideLeft', style: { fill: `rgb(${theme.colors['text-secondary']})` } }} />
                                 <YAxis yAxisId="right" orientation="right" stroke={`rgb(${theme.colors.info})`} fontSize={12} tickFormatter={(value) => formatNumber(value)} label={{ value: 'Consignments', angle: 90, position: 'insideRight', style: { fill: `rgb(${theme.colors['text-secondary']})` } }} />
-                                <Tooltip cursor={{ fill: `rgb(${theme.colors.secondary}/0.1)` }} />
+                                <Tooltip formatter={(value: number, name: string) => {
+                                    if (name.includes('Revenue') || name.includes('€')) {
+                                        return `€${typeof value === 'number' ? value.toLocaleString(undefined, { maximumFractionDigits: 0 }) : value}`;
+                                    }
+                                    return typeof value === 'number' ? value.toLocaleString() : value;
+                                }} cursor={{ fill: `rgb(${theme.colors.secondary}/0.1)` }} contentStyle={{ backgroundColor: `rgb(${theme.colors.surface})`, borderColor: `rgb(${theme.colors.secondary}/0.2)`}} />
                                 <Legend />
                                 <Bar yAxisId="left" dataKey="revenue" name="Revenue (€)" fill={`rgb(${theme.colors.success})`} />
                                 <Bar yAxisId="right" dataKey="bookings" name="Consignments" fill={`rgb(${theme.colors.info})`} />
