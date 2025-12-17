@@ -177,4 +177,6 @@ export interface MainframeBooking {
   value02?: string | null;
   value03?: string | null;
   value04?: string | null;
+  value05?: string | null;  // SourceDescription
+  value06?: string | null;  // CustomerName
 }

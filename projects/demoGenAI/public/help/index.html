@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EU Dashboard - User Guide</title>
+  <style>
+    /* Reset and Base Styles */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      overflow: hidden;
+    }
+
+    /* Header */
+    header {
+      background: linear-gradient(135deg, #4D148C 0%, #2D0A52 100%);
+      color: white;
+      padding: 40px 30px;
+      text-align: center;
+    }
+
+    header h1 {
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+      font-weight: 700;
+    }
+
+    header p {
+      font-size: 1.1rem;
+      opacity: 0.9;
+    }
+
+    /* Navigation */
+    nav {
+      background: #f8f9fa;
+      padding: 15px 30px;
+      border-bottom: 2px solid #e9ecef;
+    }
+
+    nav ul {
+      list-style: none;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+
+    nav a {
+      color: #4D148C;
+      text-decoration: none;
+      padding: 8px 15px;
+      border-radius: 6px;
+      transition: all 0.3s;
+      font-weight: 500;
+    }
+
+    nav a:hover {
+      background: #4D148C;
+      color: white;
+    }
+
+    /* Content */
+    .content {
+      padding: 40px 30px;
+    }
+
+    section {
+      margin-bottom: 50px;
+    }
+
+    h2 {
+      color: #4D148C;
+      font-size: 2rem;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 3px solid #FF6600;
+    }
+
+    h3 {
+      color: #2D0A52;
+      font-size: 1.5rem;
+      margin-top: 30px;
+      margin-bottom: 15px;
+    }
+
+    h4 {
+      color: #4D148C;
+      font-size: 1.2rem;
+      margin-top: 20px;
+      margin-bottom: 10px;
+    }
+
+    p {
+      margin-bottom: 15px;
+      color: #555;
+    }
+
+    ul, ol {
+      margin-left: 30px;
+      margin-bottom: 15px;
+    }
+
+    li {
+      margin-bottom: 10px;
+      color: #555;
+    }
+
+    /* Feature Boxes */
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      margin: 30px 0;
+    }
+
+    .feature-box {
+      background: #f8f9fa;
+      border: 2px solid #e9ecef;
+      border-radius: 8px;
+      padding: 20px;
+      transition: all 0.3s;
+    }
+
+    .feature-box:hover {
+      border-color: #4D148C;
+      transform: translateY(-5px);
+      box-shadow: 0 10px 25px rgba(77, 20, 140, 0.1);
+    }
+
+    .feature-box h4 {
+      color: #4D148C;
+      margin-top: 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .icon {
+      font-size: 1.5rem;
+    }
+
+    /* Code Blocks */
+    code {
+      background: #f8f9fa;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      color: #e83e8c;
+    }
+
+    pre {
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 8px;
+      overflow-x: auto;
+      border-left: 4px solid #4D148C;
+    }
+
+    /* Tips and Warnings */
+    .tip, .warning {
+      padding: 15px 20px;
+      border-radius: 8px;
+      margin: 20px 0;
+      border-left: 4px solid;
+    }
+
+    .tip {
+      background: #d1ecf1;
+      border-color: #0c5460;
+      color: #0c5460;
+    }
+
+    .warning {
+      background: #fff3cd;
+      border-color: #856404;
+      color: #856404;
+    }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+    }
+
+    th, td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #dee2e6;
+    }
+
+    th {
+      background: #4D148C;
+      color: white;
+      font-weight: 600;
+    }
+
+    tr:hover {
+      background: #f8f9fa;
+    }
+
+    /* Footer */
+    footer {
+      background: #2D0A52;
+      color: white;
+      text-align: center;
+      padding: 30px;
+      font-size: 0.9rem;
+    }
+
+    footer a {
+      color: #FF6600;
+      text-decoration: none;
+    }
+
+    footer a:hover {
+      text-decoration: underline;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      header h1 {
+        font-size: 2rem;
+      }
+
+      nav ul {
+        flex-direction: column;
+      }
+
+      .content {
+        padding: 30px 20px;
+      }
+
+      h2 {
+        font-size: 1.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header>
+      <h1>📊 EU Dashboard User Guide</h1>
+      <p>Complete guide to using the European Operations Analytics Dashboard</p>
+    </header>
+
+    <!-- Navigation -->
+    <nav>
+      <ul>
+        <li><a href="#getting-started">Getting Started</a></li>
+        <li><a href="#features">Features</a></li>
+        <li><a href="#navigation">Navigation</a></li>
+        <li><a href="#pages">Page Guide</a></li>
+        <li><a href="#map">Interactive Map</a></li>
+        <li><a href="#themes">Themes</a></li>
+        <li><a href="#troubleshooting">Troubleshooting</a></li>
+      </ul>
+    </nav>
+
+    <!-- Content -->
+    <div class="content">
+      <!-- Getting Started -->
+      <section id="getting-started">
+        <h2>🚀 Getting Started</h2>
+        <p>Welcome to the EU Dashboard! This comprehensive analytics platform helps you analyze European operations data across bookings, exceptions, and revenue streams.</p>
+
+        <h3>What is this dashboard?</h3>
+        <p>The EU Dashboard is a multi-page analytical platform built with React, TypeScript, and powered by AI insights. It processes data from three main sources:</p>
+        <ul>
+          <li><strong>Bookings Data</strong> - Track booking volumes, types, and trends</li>
+          <li><strong>Exceptions Data</strong> - Monitor operational exceptions and problem areas</li>
+          <li><strong>Revenue Data</strong> - Analyze revenue by country, division, and time</li>
+        </ul>
+
+        <div class="tip">
+          <strong>💡 Pro Tip:</strong> Use the theme toggle in the top-right corner to switch between Light, Dark, and FedEx themes based on your preference and environment.
+        </div>
+      </section>
+
+      <!-- Features -->
+      <section id="features">
+        <h2>✨ Key Features</h2>
+        <div class="feature-grid">
+          <div class="feature-box">
+            <h4><span class="icon">📈</span> Real-time Analytics</h4>
+            <p>Interactive charts and visualizations update based on your data</p>
+          </div>
+          <div class="feature-box">
+            <h4><span class="icon">🗺️</span> Interactive Map</h4>
+            <p>Visual Europe map with AI-powered country insights</p>
+          </div>
+          <div class="feature-box">
+            <h4><span class="icon">🤖</span> AI Insights</h4>
+            <p>Gemini-powered analysis of market share and sales opportunities</p>
+          </div>
+          <div class="feature-box">
+            <h4><span class="icon">🎨</span> Three Themes</h4>
+            <p>Light, Dark, and FedEx branded themes</p>
+          </div>
+          <div class="feature-box">
+            <h4><span class="icon">📊</span> Multi-page Navigation</h4>
+            <p>Dedicated pages for each dataset with deep analysis</p>
+          </div>
+          <div class="feature-box">
+            <h4><span class="icon">📧</span> Email Templates</h4>
+            <p>Copy AI-generated sales insights directly to email</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Navigation -->
+      <section id="navigation">
+        <h2>🧭 Navigation Guide</h2>
+        <p>The dashboard uses a top navigation bar to access different pages. Here's what each section offers:</p>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Page</th>
+              <th>Icon</th>
+              <th>Purpose</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Dashboard</strong></td>
+              <td>📊</td>
+              <td>Overview of all metrics with KPI cards and quick insights</td>
+            </tr>
+            <tr>
+              <td><strong>Bookings</strong></td>
+              <td>📦</td>
+              <td>Detailed booking analysis with trends, types, and country breakdowns</td>
+            </tr>
+            <tr>
+              <td><strong>Exceptions</strong></td>
+              <td>⚠️</td>
+              <td>Exception tracking, rates, and problem country identification</td>
+            </tr>
+            <tr>
+              <td><strong>Revenue</strong></td>
+              <td>💰</td>
+              <td>Revenue analysis by country, division, and efficiency metrics</td>
+            </tr>
+            <tr>
+              <td><strong>Europe Map</strong></td>
+              <td>🗺️</td>
+              <td>Interactive map with AI insights for each country</td>
+            </tr>
+            <tr>
+              <td><strong>Help</strong></td>
+              <td>❓</td>
+              <td>This user guide</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- Page Details -->
+      <section id="pages">
+        <h2>📄 Page-by-Page Guide</h2>
+
+        <h3>Dashboard Page</h3>
+        <p>The main landing page provides a high-level overview:</p>
+        <ul>
+          <li><strong>KPI Cards</strong> - Total bookings, revenue, exceptions, and rates</li>
+          <li><strong>Quick Charts</strong> - Preview of bookings, revenue, and exception trends</li>
+          <li><strong>Navigation Shortcuts</strong> - Links to detailed analysis pages</li>
+        </ul>
+
+        <h3>Bookings Page</h3>
+        <p>Comprehensive booking analysis including:</p>
+        <ul>
+          <li><strong>Monthly Trend Chart</strong> - Bookings over 12-month period</li>
+          <li><strong>Booking Type Distribution</strong> - Pie chart showing DET, INT, SCH, SUM, XBB breakdown</li>
+          <li><strong>Top Countries Summary</strong> - Progress bars for top 10 countries by volume</li>
+          <li><strong>Country Bar Chart</strong> - Complete country comparison</li>
+          <li><strong>Statistics</strong> - Total bookings, booking types, active countries</li>
+        </ul>
+
+        <h3>Exceptions Page</h3>
+        <p>Track and analyze operational exceptions:</p>
+        <ul>
+          <li><strong>Monthly Exception Trends</strong> - Track exceptions over time</li>
+          <li><strong>Ops Source Breakdown</strong> - R (Regular) vs I (International) distribution</li>
+          <li><strong>Exception Rate Trend</strong> - Percentage of bookings with exceptions</li>
+          <li><strong>Exception Table</strong> - Sortable table by country with rates</li>
+          <li><strong>High-Risk Countries</strong> - Countries with >5% exception rates</li>
+        </ul>
+
+        <h3>Revenue Page</h3>
+        <p>Detailed revenue analytics:</p>
+        <ul>
+          <li><strong>Monthly Revenue Trend</strong> - Revenue over 12-month period</li>
+          <li><strong>Division Distribution</strong> - Pie chart of revenue by division</li>
+          <li><strong>Top Revenue Countries</strong> - Progress bars for top 10 countries</li>
+          <li><strong>Division Performance Breakdown</strong> - Colored cards for each division</li>
+          <li><strong>Revenue Efficiency</strong> - Average revenue per booking analysis</li>
+        </ul>
+
+        <h3>Europe Map Page</h3>
+        <p>Interactive geographical analysis with AI insights - see detailed guide below.</p>
+      </section>
+
+      <!-- Map Guide -->
+      <section id="map">
+        <h2>🗺️ Interactive Map Guide</h2>
+        <p>The Europe Map is the most advanced feature, combining geographical visualization with AI-powered insights.</p>
+
+        <h3>How to Use the Map</h3>
+        <ol>
+          <li><strong>View Revenue Distribution</strong> - Countries are colored by total revenue:
+            <ul>
+              <li>Dark Green = Highest revenue (80%+ of max)</li>
+              <li>Medium Green = High revenue (40-80% of max)</li>
+              <li>Light Green = Medium revenue (20-40% of max)</li>
+              <li>Very Light Green = Low revenue (&lt;20% of max)</li>
+              <li>Gray = No data available</li>
+            </ul>
+          </li>
+          <li><strong>Hover over Countries</strong> - See tooltips with country name and exact revenue amount</li>
+          <li><strong>Click Any Country</strong> - Open the AI-powered insight panel (slides in from right)</li>
+          <li><strong>Zoom and Pan</strong> - Use mouse wheel to zoom, click and drag to pan around the map</li>
+        </ol>
+
+        <h3>AI Country Insights</h3>
+        <p>When you click a country, the system generates (or retrieves from cache) comprehensive market intelligence:</p>
+
+        <h4>🚚 Transport Carriers</h4>
+        <ul>
+          <li>List of major logistics carriers operating in that country</li>
+          <li>Market share percentages for each carrier</li>
+          <li>FedEx highlighted with special styling</li>
+          <li>Visual progress bars showing relative market position</li>
+        </ul>
+
+        <h4>📊 FedEx Market Sentiment</h4>
+        <ul>
+          <li>AI-generated analysis of FedEx's position in that market</li>
+          <li>Competitive landscape assessment</li>
+          <li>Strengths and opportunities identified</li>
+        </ul>
+
+        <h4>💡 Sales Recommendations</h4>
+        <ul>
+          <li>Actionable tips to increase market share</li>
+          <li>Customer acquisition strategies</li>
+          <li>Revenue growth opportunities</li>
+          <li>Localized insights based on country characteristics</li>
+        </ul>
+
+        <h4>✉️ Email Template</h4>
+        <ul>
+          <li>Pre-formatted email with all insights</li>
+          <li>One-click copy to clipboard</li>
+          <li>Ready to send to sales team</li>
+          <li>Includes all carrier data, sentiment, and recommendations</li>
+        </ul>
+
+        <div class="tip">
+          <strong>💡 Performance Tip:</strong> Insights are cached per session. The first click on a country may take a few seconds, but subsequent clicks are instant!
+        </div>
+
+        <div class="warning">
+          <strong>⚠️ Note:</strong> If no Gemini API key is configured, the system will generate mock insights for demonstration purposes.
+        </div>
+      </section>
+
+      <!-- Themes -->
+      <section id="themes">
+        <h2>🎨 Theme Customization</h2>
+        <p>The dashboard offers three professionally designed themes. Click the theme toggle button (🌓) in the top-right corner to cycle through them.</p>
+
+        <h3>Light Theme</h3>
+        <ul>
+          <li>Clean white background</li>
+          <li>Blue and purple accents</li>
+          <li>Best for: Daytime use, presentations, printing</li>
+        </ul>
+
+        <h3>Dark Theme</h3>
+        <ul>
+          <li>Dark gray background (#1F2937)</li>
+          <li>Reduced eye strain in low light</li>
+          <li>Best for: Evening work, extended use, battery saving</li>
+        </ul>
+
+        <h3>FedEx Theme</h3>
+        <ul>
+          <li>Dark purple background (#1F083A) - FedEx brand color</li>
+          <li>Purple and orange accents matching FedEx branding</li>
+          <li>White cards with purple borders</li>
+          <li>Best for: FedEx presentations, brand consistency, executive dashboards</li>
+        </ul>
+
+        <p>Your theme preference is saved to your browser and will persist across sessions.</p>
+      </section>
+
+      <!-- Troubleshooting -->
+      <section id="troubleshooting">
+        <h2>🔧 Troubleshooting</h2>
+
+        <h3>Charts Not Displaying</h3>
+        <p><strong>Symptoms:</strong> Empty spaces where charts should appear</p>
+        <p><strong>Solutions:</strong></p>
+        <ul>
+          <li>Check browser console for JavaScript errors (F12)</li>
+          <li>Ensure data files are loading correctly</li>
+          <li>Try refreshing the page (Ctrl+R or Cmd+R)</li>
+          <li>Clear browser cache and reload</li>
+        </ul>
+
+        <h3>Map Not Loading</h3>
+        <p><strong>Symptoms:</strong> Gray box or loading spinner on map page</p>
+        <p><strong>Solutions:</strong></p>
+        <ul>
+          <li>Check internet connection (map tiles load from external server)</li>
+          <li>Disable browser extensions that might block map resources</li>
+          <li>Allow location services if prompted</li>
+          <li>Check browser console for errors</li>
+        </ul>
+
+        <h3>AI Insights Not Generating</h3>
+        <p><strong>Symptoms:</strong> Country panel shows loading indefinitely or error</p>
+        <p><strong>Solutions:</strong></p>
+        <ul>
+          <li>Verify Gemini API key is configured correctly in .env.local</li>
+          <li>Check internet connection for API calls</li>
+          <li>Review API quota limits (if using real API)</li>
+          <li>Mock insights should still work if API fails</li>
+        </ul>
+
+        <h3>Slow Performance</h3>
+        <p><strong>Symptoms:</strong> Page feels sluggish, charts take time to render</p>
+        <p><strong>Solutions:</strong></p>
+        <ul>
+          <li>Close unnecessary browser tabs</li>
+          <li>Disable browser extensions</li>
+          <li>Use a modern browser (Chrome, Firefox, Edge, Safari latest versions)</li>
+          <li>Reduce browser zoom level if set very high</li>
+        </ul>
+
+        <h3>Theme Not Changing</h3>
+        <p><strong>Symptoms:</strong> Theme toggle doesn't switch themes</p>
+        <p><strong>Solutions:</strong></p>
+        <ul>
+          <li>Check if localStorage is enabled in browser</li>
+          <li>Try hard refresh (Ctrl+Shift+R or Cmd+Shift+R)</li>
+          <li>Clear browser cache and cookies for this site</li>
+        </ul>
+
+        <h3>Still Having Issues?</h3>
+        <div class="tip">
+          <strong>📧 Contact Support:</strong> If problems persist, check the browser console (F12 → Console tab) for error messages and contact your technical administrator with:
+          <ul>
+            <li>Browser name and version</li>
+            <li>Operating system</li>
+            <li>Screenshot of the issue</li>
+            <li>Console error messages (if any)</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- Keyboard Shortcuts -->
+      <section id="shortcuts">
+        <h2>⌨️ Keyboard Shortcuts</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Shortcut</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>Esc</code></td>
+              <td>Close AI insight panel on map page</td>
+            </tr>
+            <tr>
+              <td><code>Ctrl/Cmd + K</code></td>
+              <td>Toggle theme (if implemented)</td>
+            </tr>
+            <tr>
+              <td><code>F11</code></td>
+              <td>Fullscreen mode (browser default)</td>
+            </tr>
+            <tr>
+              <td><code>Ctrl/Cmd + R</code></td>
+              <td>Refresh page</td>
+            </tr>
+            <tr>
+              <td><code>F12</code></td>
+              <td>Open browser developer tools</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- Tips and Best Practices -->
+      <section id="tips">
+        <h2>💼 Tips & Best Practices</h2>
+        <ol>
+          <li><strong>Start with the Dashboard</strong> - Get a quick overview before diving into detailed pages</li>
+          <li><strong>Use the Map for Sales Insights</strong> - The AI-generated recommendations are valuable for identifying growth opportunities</li>
+          <li><strong>Compare Exception Rates</strong> - High exception rates indicate countries needing operational attention</li>
+          <li><strong>Monitor Trends Over Time</strong> - Monthly charts help identify seasonal patterns and growth trends</li>
+          <li><strong>Export Map Insights</strong> - Use the email copy button to share insights with colleagues</li>
+          <li><strong>Choose the Right Theme</strong> - FedEx theme for presentations, Dark theme for extended use, Light theme for printing</li>
+          <li><strong>Bookmark Specific Pages</strong> - Each page has its own URL for quick access</li>
+          <li><strong>Check High-Risk Countries</strong> - The Exceptions page highlights countries with concerning exception rates</li>
+        </ol>
+      </section>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+      <p>&copy; 2025 EU Dashboard - European Operations Analytics</p>
+      <p>Built with React, TypeScript, and AI • Powered by Gemini API</p>
+      <p>Questions? Contact your technical administrator</p>
+    </footer>
+  </div>
+</body>
+</html>

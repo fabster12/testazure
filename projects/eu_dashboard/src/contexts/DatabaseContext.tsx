@@ -4,7 +4,8 @@ import { initDatabase, getTableAsJSON } from '../services/duckdbService';
 
 const QUERIES = [
   { nr: 1, name: 'Bookings (JK)', code: 'bookings_jk', icon: '📊' },
-  { nr: 2, name: 'Track & Trace Consignments (YL)', code: 'track_trace_con_yl', icon: '📦' },
+  { nr: 2.1, name: 'Track & Trace Consignments (YLa)', code: 'track_trace_con_yla', icon: '📦' },
+  { nr: 2.2, name: 'Track & Trace Consignments (YLb)', code: 'track_trace_con_ylb', icon: '📦' },
   { nr: 3, name: 'Invoiced Consignments (YI)', code: 'invoiced_consignments_yi', icon: '💰' },
   { nr: 4, name: 'Invoice Corrections (JI)', code: 'invoice_corrections_ji', icon: '🔧' },
   { nr: 5, name: 'Exceptions (YH)', code: 'exceptions_yh', icon: '⚠️' },

@@ -1,0 +1,70 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom scrollbar and theme styles */
+@layer base {
+  * {
+    @apply border-gray-200 dark:border-gray-700;
+  }
+
+  body {
+    @apply bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors;
+  }
+
+  /* FedEx theme - ensure dark background propagates */
+  html.fedex,
+  html.fedex body {
+    background-color: #1F083A !important;
+    color: #E8DCF2;
+  }
+
+  /* Custom scrollbar - Light theme */
+  ::-webkit-scrollbar {
+    @apply w-2 h-2;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-gray-100 dark:bg-gray-800;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 dark:bg-gray-600 rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-400 dark:bg-gray-500;
+  }
+
+  /* Custom scrollbar - FedEx theme */
+  .fedex ::-webkit-scrollbar-track {
+    background-color: #E8DCF2;
+  }
+
+  .fedex ::-webkit-scrollbar-thumb {
+    background-color: #7F3BB3;
+    border-radius: 9999px;
+  }
+
+  .fedex ::-webkit-scrollbar-thumb:hover {
+    background-color: #4D148C;
+  }
+}
+
+/* Animation utilities */
+@layer utilities {
+  .animate-fade-in {
+    animation: fadeIn 0.5s ease-in;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}

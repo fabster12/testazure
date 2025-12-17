@@ -5,7 +5,17 @@
       "Bash(./backup.sh:*)",
       "Bash(npm run build:*)",
       "Bash(find:*)",
-      "Bash(npm run dev:*)"
+      "Bash(npm run dev:*)",
+      "Bash(cp:*)",
+      "Bash(chmod:*)",
+      "Bash(tree:*)",
+      "Bash(wc:*)",
+      "Bash(npm install)",
+      "Bash(npm install:*)",
+      "Bash(cat:*)",
+      "Bash(node:*)",
+      "Bash(ls:*)",
+      "Bash(curl:*)"
     ],
     "deny": [],
     "ask": []

@@ -26,7 +26,8 @@ const TABLE_NAMES = [
   'bookings_jk',
   'RATECHECKS_YQ',
   'revenue_by_customer',
-  'track_trace_con_yl',
+  'track_trace_con_yla',
+  'track_trace_con_ylb',
   'wave_customers',
   'total_revenue',
   'customer_revenue'
@@ -129,7 +130,75 @@ async function performInitialization(forceReload: boolean): Promise<void> {
 
             loadedCount++;
             console.log(`  ✓ Loaded table: ${tableName} (from CSV with field mapping)`);
-          } else if (tableName === 'track_trace_con_yl') {
+          } else if (tableName === 'track_trace_con_yla') {
+            // Always load from CSV file (skip localStorage for CSV-migrated tables)
+            console.log(`  - Fetching 02_TrackTraceConsignments_YLa.csv...`);
+            const response = await fetch(`/data/02_TrackTraceConsignments_YLa.csv`);
+            if (!response.ok) {
+              console.warn(`    ⚠ Skipping ${tableName}: ${response.statusText}`);
+              continue;
+            }
+            const csvData = await response.text();
+
+            console.log(`  - Registering ${tableName} from CSV...`);
+            await db!.registerFileText(`${tableName}.csv`, csvData);
+
+            console.log(`  - Creating table ${tableName}...`);
+            await conn!.query(`DROP TABLE IF EXISTS ${tableName}`);
+            await conn!.query(`CREATE TEMP TABLE ${tableName}_temp AS SELECT * FROM read_csv_auto('${tableName}.csv')`);
+
+            // Get schema to identify VARCHAR columns and rename fields
+            const schema = await conn!.query(`
+              SELECT column_name, data_type
+              FROM information_schema.columns
+              WHERE table_name='${tableName}_temp'
+            `);
+
+            const columns = schema.toArray().map(row => row.toJSON());
+            const selectClauses = columns.map((col: any) => {
+              let columnName = col.column_name;
+              let outputName = columnName;
+
+              // Map CSV column names to MainframeBooking interface
+              if (columnName === 'QueryName') {
+                outputName = 'queryName';
+              } else if (columnName === 'YearVal') {
+                outputName = 'year';
+              } else if (columnName === 'MonthVal') {
+                outputName = 'month';
+              } else if (columnName === 'RecordCount') {
+                outputName = 'recordCount';
+              } else if (columnName === 'Country') {
+                outputName = 'value01';
+              } else if (columnName === 'DataEntryCountry') {
+                outputName = 'value01';
+              } else if (columnName === 'OriginCountry') {
+                outputName = 'value02';
+              } else if (columnName === 'DestCountry') {
+                outputName = 'value03';
+              } else if (columnName === 'OpsSourceCode') {
+                outputName = 'value04';
+              } else if (columnName === 'SourceDescription') {
+                outputName = 'value05';
+              } else if (columnName === 'CustomerName') {
+                outputName = 'value06';
+              }
+
+              if (col.data_type === 'VARCHAR') {
+                return `TRIM(${columnName}) AS ${outputName}`;
+              }
+              return `${columnName} AS ${outputName}`;
+            });
+
+            // Create final table with trimmed VARCHAR columns and renamed fields
+            await conn!.query(`CREATE TABLE ${tableName} AS SELECT ${selectClauses.join(', ')} FROM ${tableName}_temp`);
+
+            // Drop temp table
+            await conn!.query(`DROP TABLE ${tableName}_temp`);
+
+            loadedCount++;
+            console.log(`  ✓ Loaded table: ${tableName} (from CSV with field mapping)`);
+          } else if (tableName === 'track_trace_con_ylb') {
             // Always load from CSV file (skip localStorage for CSV-migrated tables)
             console.log(`  - Fetching 02_TrackTraceConsignments_YL.csv...`);
             const response = await fetch(`/data/02_TrackTraceConsignments_YL.csv`);
@@ -177,6 +246,10 @@ async function performInitialization(forceReload: boolean): Promise<void> {
                 outputName = 'value03';
               } else if (columnName === 'OpsSourceCode') {
                 outputName = 'value04';
+              } else if (columnName === 'SourceDescription') {
+                outputName = 'value05';
+              } else if (columnName === 'CustomerName') {
+                outputName = 'value06';
               }
 
               if (col.data_type === 'VARCHAR') {

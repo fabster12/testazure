@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, ComposedChart, Line, AreaChart, Area, LineChart } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, ComposedChart, Line, AreaChart, Area, LineChart, Treemap } from 'recharts';
 import { MainframeBooking } from '../types';
 import { useTheme } from '../contexts/ThemeContext';
 import { useDatabaseContext } from '../contexts/DatabaseContext';
@@ -100,6 +100,19 @@ const MigrationDashboard: React.FC = () => {
     const [selectedBookingTypes, setSelectedBookingTypes] = useState<string[]>([]); // Filter for booking types
     const [isBookingTypeDropdownOpen, setIsBookingTypeDropdownOpen] = useState(false);
 
+    // Query 2a specific filters
+    const [customerSearchText, setCustomerSearchText] = useState('');
+    const [selectedCustomerNames, setSelectedCustomerNames] = useState<string[]>([]);
+    const [selectedSourceDescriptions, setSelectedSourceDescriptions] = useState<string[]>([]);
+    const [isSourceDescDropdownOpen, setIsSourceDescDropdownOpen] = useState(false);
+    const [isCustomerDropdownOpen, setIsCustomerDropdownOpen] = useState(false);
+    const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
+    const [modalCustomerSearch, setModalCustomerSearch] = useState('');
+    const [modalSelectedCustomers, setModalSelectedCustomers] = useState<string[]>([]);
+    const [modalAvailableSelected, setModalAvailableSelected] = useState<string[]>([]);
+    const [modalRightSelected, setModalRightSelected] = useState<string[]>([]);
+    const [opsSourceTopN, setOpsSourceTopN] = useState<number>(10);
+
     // Track whether success banner should be shown
     const [showSuccessBanner, setShowSuccessBanner] = useState(true);
 
@@ -112,6 +125,8 @@ const MigrationDashboard: React.FC = () => {
     const trendDivisionDropdownRef = useRef<HTMLDivElement>(null);
     const customerDivisionDropdownRef = useRef<HTMLDivElement>(null);
     const opsSourceDropdownRef = useRef<HTMLDivElement>(null);
+    const sourceDescDropdownRef = useRef<HTMLDivElement>(null);
+    const customerDropdownRef = useRef<HTMLDivElement>(null);
 
     // Generic TopN for other queries
     const [topNCount, setTopNCount] = useState<number>(10);
@@ -126,6 +141,12 @@ const MigrationDashboard: React.FC = () => {
             }
             if (opsSourceDropdownRef.current && !opsSourceDropdownRef.current.contains(event.target as Node)) {
                 setIsOpsSourceDropdownOpen(false);
+            }
+            if (sourceDescDropdownRef.current && !sourceDescDropdownRef.current.contains(event.target as Node)) {
+                setIsSourceDescDropdownOpen(false);
+            }
+            if (customerDropdownRef.current && !customerDropdownRef.current.contains(event.target as Node)) {
+                setIsCustomerDropdownOpen(false);
             }
         };
         document.addEventListener('mousedown', handleClickOutside);
@@ -147,6 +168,13 @@ const MigrationDashboard: React.FC = () => {
         }
     }, [loadingState.phase, loadingState.failedQueries.length]);
 
+    // Initialize modal with current selections when opening
+    useEffect(() => {
+        if (isCustomerModalOpen) {
+            setModalSelectedCustomers(selectedCustomerNames);
+        }
+    }, [isCustomerModalOpen, selectedCustomerNames]);
+
     const allDivisions = useMemo(() => {
         // Combine divisions from all revenue queries
         const revenueData = allData[REVENUE_BY_CUSTOMER_CODE] || [];
@@ -161,10 +189,12 @@ const MigrationDashboard: React.FC = () => {
         return Array.from(divisions).sort();
     }, [allData]);
 
-    // Extract all available ops source codes from track_trace_con_yl data
+    // Extract all available ops source codes from track_trace_con_yla and track_trace_con_ylb data
     const allOpsSourceCodes = useMemo(() => {
-        const trackTraceData = allData['track_trace_con_yl'] || [];
-        return Array.from(new Set(trackTraceData.map(d => d.value04 || 'N/A').filter(code => code))).sort();
+        const trackTraceDataA = allData['track_trace_con_yla'] || [];
+        const trackTraceDataB = allData['track_trace_con_ylb'] || [];
+        const combinedData = [...trackTraceDataA, ...trackTraceDataB];
+        return Array.from(new Set(combinedData.map(d => d.value04 || 'N/A').filter(code => code))).sort();
     }, [allData]);
 
     useEffect(() => {
@@ -408,7 +438,7 @@ const MigrationDashboard: React.FC = () => {
             const countrySet = new Set(selectedCountries);
             data = data.filter(item => {
                 if (item.Country && countrySet.has(item.Country)) return true;
-                if (selectedQuery === 'track_trace_con_yl') {
+                if (selectedQuery === 'track_trace_con_yla' || selectedQuery === 'track_trace_con_ylb') {
                     if (item.value01 && countrySet.has(item.value01)) return true;
                 }
                 if (item.queryName && item.queryName.toUpperCase() === 'TRACK & TRACE - GLCON') {
@@ -420,8 +450,8 @@ const MigrationDashboard: React.FC = () => {
         // Filter two: Ops Source Code FX filter (default: exclude FX)
         if (!includeOpsSourceFX) {
             data = data.filter(item => {
-                // For track_trace_con_yl: OpsSourceCode is in value04
-                if (selectedQuery === 'track_trace_con_yl' && item.value04) {
+                // For track_trace_con_yla and track_trace_con_ylb: OpsSourceCode is in value04
+                if ((selectedQuery === 'track_trace_con_yla' || selectedQuery === 'track_trace_con_ylb') && item.value04) {
                     return String(item.value04).toUpperCase() !== 'FX';
                 }
                 // For exceptions_yh: OpsSourceCode is in value01
@@ -436,8 +466,8 @@ const MigrationDashboard: React.FC = () => {
         if (selectedOpsSourceCodes.length > 0) {
             const codeSet = new Set(selectedOpsSourceCodes);
             data = data.filter(item => {
-                // For track_trace_con_yl: OpsSourceCode is in value04
-                if (selectedQuery === 'track_trace_con_yl' && item.value04) {
+                // For track_trace_con_yla and track_trace_con_ylb: OpsSourceCode is in value04
+                if ((selectedQuery === 'track_trace_con_yla' || selectedQuery === 'track_trace_con_ylb') && item.value04) {
                     return codeSet.has(String(item.value04).trim());
                 }
                 // For exceptions_yh: OpsSourceCode is in value01
@@ -459,8 +489,25 @@ const MigrationDashboard: React.FC = () => {
             });
         }
 
+        // Query 2a specific filters
+        // Customer names filter (multi-select)
+        if (selectedCustomerNames.length > 0 && selectedQuery === 'track_trace_con_yla') {
+            const customerSet = new Set(selectedCustomerNames);
+            data = data.filter(item =>
+                item.value06 && customerSet.has(String(item.value06).trim())
+            );
+        }
+
+        // Source description filter (by OpsSourceCode)
+        if (selectedSourceDescriptions.length > 0 && selectedQuery === 'track_trace_con_yla') {
+            const codeSet = new Set(selectedSourceDescriptions);
+            data = data.filter(item =>
+                item.value04 && codeSet.has(String(item.value04).trim())
+            );
+        }
+
         return data;
-    }, [allData, selectedQuery, dateRange, selectedCountries, allCountriesInData, includeOpsSourceFX, selectedOpsSourceCodes, selectedBookingTypes]);
+    }, [allData, selectedQuery, dateRange, selectedCountries, allCountriesInData, includeOpsSourceFX, selectedOpsSourceCodes, selectedBookingTypes, selectedCustomerNames, selectedSourceDescriptions]);
     
     const isRevenueFormat = useMemo(() => {
         if (!currentQueryInfo || !currentQueryInfo.name.toUpperCase().includes('INVOICED CONSIGNMENTS (YI)')) return false;
@@ -937,6 +984,16 @@ const MigrationDashboard: React.FC = () => {
                 }
             });
             return Object.entries(byCountry).map(([country, data]) => ({ country, ...data })).sort((a, b) => b.revenue - a.revenue).slice(0, topNCount);
+        } else if (queryName === 'TRACK & TRACE CONSIGNMENTS (YLA)') {
+            // For YLA: country=value01 (Country field)
+            const byCountry: { [key: string]: number } = {};
+            filteredData.forEach(item => {
+                const country = item.value01?.trim();
+                if(country && countryCodeMap[country]) {
+                    byCountry[country] = (byCountry[country] || 0) + item.recordCount;
+                }
+            });
+            return Object.entries(byCountry).map(([country, records]) => ({ country, records })).sort((a, b) => b.records - a.records).slice(0, topNCount);
         }
         return [];
     }, [filteredData, topNCount, currentQueryInfo, countryCodeMap]);
@@ -982,39 +1039,37 @@ const MigrationDashboard: React.FC = () => {
     }, [filteredData, currentQueryInfo]);
 
     const topOriginCountriesData = useMemo(() => {
-        if (currentQueryInfo?.name.toUpperCase() !== 'TRACK & TRACE CONSIGNMENTS (YL)') return [];
+        const queryName = currentQueryInfo?.name.toUpperCase();
+        if (queryName !== 'TRACK & TRACE CONSIGNMENTS (YLA)' && queryName !== 'TRACK & TRACE CONSIGNMENTS (YLB)') return [];
         const byCountry: { [key: string]: number } = {};
-        filteredData.forEach(item => { if (item.value01) byCountry[item.value01] = (byCountry[item.value01] || 0) + item.recordCount; });
+        filteredData.forEach(item => { if (item.value02) byCountry[item.value02] = (byCountry[item.value02] || 0) + item.recordCount; });
         return Object.entries(byCountry).map(([country, records]) => ({ country, records })).sort((a,b) => b.records - a.records).slice(0, topNCount);
     }, [filteredData, topNCount, currentQueryInfo]);
 
     const topDestinationCountriesData = useMemo(() => {
-        if (currentQueryInfo?.name.toUpperCase() !== 'TRACK & TRACE CONSIGNMENTS (YL)') return [];
+        const queryName = currentQueryInfo?.name.toUpperCase();
+        if (queryName !== 'TRACK & TRACE CONSIGNMENTS (YLA)' && queryName !== 'TRACK & TRACE CONSIGNMENTS (YLB)') return [];
         const byCountry: { [key: string]: number } = {};
         filteredData.forEach(item => { if (item.value03) byCountry[item.value03] = (byCountry[item.value03] || 0) + item.recordCount; });
         return Object.entries(byCountry).map(([country, records]) => ({ country, records })).sort((a,b) => b.records - a.records).slice(0, topNCount);
     }, [filteredData, topNCount, currentQueryInfo]);
     
     const transitCountryData = useMemo(() => {
-        if (currentQueryInfo?.name.toUpperCase() !== 'TRACK & TRACE CONSIGNMENTS (YL)') return [];
+        if (currentQueryInfo?.name.toUpperCase() !== 'TRACK & TRACE CONSIGNMENTS (YLB)') return [];
         const byCountry: { [key: string]: number } = {};
         filteredData.forEach(item => { if (item.value01) byCountry[item.value01] = (byCountry[item.value01] || 0) + item.recordCount; });
-        const sortedData = Object.entries(byCountry).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
-        if (sortedData.length > 10) {
-            const topData = sortedData.slice(0, 9);
-            const otherValue = sortedData.slice(9).reduce((acc, curr) => acc + curr.value, 0);
-            return [...topData, { name: 'Others', value: otherValue }];
-        }
-        return sortedData;
-    }, [filteredData, currentQueryInfo]);
+        const sortedData = Object.entries(byCountry).map(([country, records]) => ({ country, records })).sort((a, b) => b.records - a.records);
+        // Use topNCount for filtering
+        return sortedData.slice(0, topNCount);
+    }, [filteredData, topNCount, currentQueryInfo]);
 
     // Get all available ops source codes from the current data (before filtering)
     const availableOpsSourceCodes = useMemo(() => {
         let data = allData[selectedQuery] || [];
         const codes = new Set<string>();
 
-        // For track_trace_con_yl: OpsSourceCode is in value04
-        if (selectedQuery === 'track_trace_con_yl') {
+        // For track_trace_con_yla and track_trace_con_ylb: OpsSourceCode is in value04
+        if (selectedQuery === 'track_trace_con_yla' || selectedQuery === 'track_trace_con_ylb') {
             data.forEach(item => {
                 if (item.value04) codes.add(String(item.value04).trim());
             });
@@ -1042,12 +1097,339 @@ const MigrationDashboard: React.FC = () => {
         return Array.from(types).sort();
     }, [allData, selectedQuery]);
 
-    const opsSourceCodeData = useMemo(() => {
-        if (currentQueryInfo?.name.toUpperCase() !== 'TRACK & TRACE CONSIGNMENTS (YL)') return [];
-        const byCode: { [key: string]: number } = {};
-        filteredData.forEach(item => { byCode[item.value04 || 'N/A'] = (byCode[item.value04 || 'N/A'] || 0) + item.recordCount; });
-        return Object.entries(byCode).map(([name, value]) => ({ name, value }));
+    // Query 2a specific data processing
+    const availableSourceDescriptions = useMemo(() => {
+        if (selectedQuery !== 'track_trace_con_yla') return [];
+        let data = allData[selectedQuery] || [];
+        const descriptionsMap = new Map<string, string>();
+
+        data.forEach(item => {
+            const code = item.value04 ? String(item.value04).trim() : '';
+            const desc = item.value05 ? String(item.value05).trim() : '';
+            if (code && !descriptionsMap.has(code)) {
+                descriptionsMap.set(code, desc);
+            }
+        });
+
+        return Array.from(descriptionsMap.entries())
+            .map(([code, description]) => ({ code, description }))
+            .sort((a, b) => a.code.localeCompare(b.code));
+    }, [allData, selectedQuery]);
+
+    const availableMonths = useMemo(() => {
+        if (selectedQuery !== 'track_trace_con_yla') return [];
+        let data = allData[selectedQuery] || [];
+        const months = new Set<number>();
+        data.forEach(item => months.add(item.month));
+        return Array.from(months).sort((a, b) => a - b);
+    }, [allData, selectedQuery]);
+
+    const availableYears = useMemo(() => {
+        if (selectedQuery !== 'track_trace_con_yla') return [];
+        let data = allData[selectedQuery] || [];
+        const years = new Set<number>();
+        data.forEach(item => years.add(item.year));
+        return Array.from(years).sort((a, b) => a - b);
+    }, [allData, selectedQuery]);
+
+    const customerSearchResults = useMemo(() => {
+        if (selectedQuery !== 'track_trace_con_yla' || customerSearchText.length < 3) return [];
+        let data = allData[selectedQuery] || [];
+        const customers = new Set<string>();
+
+        const searchLower = customerSearchText.toLowerCase();
+        data.forEach(item => {
+            const customerName = item.value06 ? String(item.value06).trim() : '';
+            if (customerName && customerName.toUpperCase() !== 'NULL' && customerName.toLowerCase().includes(searchLower)) {
+                customers.add(customerName);
+            }
+        });
+
+        return Array.from(customers).sort().slice(0, 20);
+    }, [allData, selectedQuery, customerSearchText]);
+
+    const allAvailableCustomers = useMemo(() => {
+        if (selectedQuery !== 'track_trace_con_yla') return [];
+        // Apply all filters except customer name filters to show available customers in current context
+        let data = allData[selectedQuery] || [];
+
+        // Apply date range filter
+        if (dateRange.start && dateRange.end) {
+            const startDate = new Date(`${dateRange.start}T00:00:00Z`);
+            const endDate = new Date(`${dateRange.end}T00:00:00Z`);
+            endDate.setUTCMonth(endDate.getUTCMonth() + 1, 0);
+            data = data.filter(item => {
+                const itemDate = new Date(Date.UTC(item.year, item.month - 1));
+                return itemDate >= startDate && itemDate <= endDate;
+            });
+        }
+
+        // Apply country filter
+        if (selectedCountries.length < allCountriesInData.length) {
+            const countrySet = new Set(selectedCountries);
+            data = data.filter(item => {
+                if (item.value01 && countrySet.has(item.value01)) return true;
+                return false;
+            });
+        }
+
+        // Apply FX filter
+        if (!includeOpsSourceFX) {
+            data = data.filter(item => {
+                if (item.value04) {
+                    return String(item.value04).toUpperCase() !== 'FX';
+                }
+                return true;
+            });
+        }
+
+        // Apply Ops Source Code filter
+        if (selectedOpsSourceCodes.length > 0) {
+            const codeSet = new Set(selectedOpsSourceCodes);
+            data = data.filter(item => {
+                if (item.value04) {
+                    return codeSet.has(String(item.value04).trim());
+                }
+                return true;
+            });
+        }
+
+        // Apply Source Description filter (Query 2a specific)
+        if (selectedSourceDescriptions.length > 0) {
+            const codeSet = new Set(selectedSourceDescriptions);
+            data = data.filter(item => {
+                if (item.value04) {
+                    return codeSet.has(String(item.value04).trim());
+                }
+                return false;
+            });
+        }
+
+        // Extract unique customer names
+        const customers = new Set<string>();
+        data.forEach(item => {
+            const customerName = item.value06 ? String(item.value06).trim() : '';
+            if (customerName && customerName.toUpperCase() !== 'NULL') {
+                customers.add(customerName);
+            }
+        });
+
+        return Array.from(customers).sort();
+    }, [allData, selectedQuery, dateRange, selectedCountries, allCountriesInData, includeOpsSourceFX, selectedOpsSourceCodes, selectedSourceDescriptions]);
+
+    const topCustomersData = useMemo(() => {
+        if (currentQueryInfo?.name.toUpperCase() !== 'TRACK & TRACE CONSIGNMENTS (YLA)') return [];
+        const byCustomer: { [key: string]: number } = {};
+        filteredData.forEach(item => {
+            // Filter out NULL, empty, or undefined customers
+            if (item.value06 && String(item.value06).trim() && String(item.value06).toUpperCase() !== 'NULL') {
+                byCustomer[item.value06] = (byCustomer[item.value06] || 0) + item.recordCount;
+            }
+        });
+        return Object.entries(byCustomer)
+            .map(([customer, records]) => ({ customer, records }))
+            .sort((a, b) => b.records - a.records)
+            .slice(0, topNCount);
+    }, [filteredData, topNCount, currentQueryInfo]);
+
+    // Visualization 1: Monthly Trend - Stacked Area Chart
+    const monthlyTrendStackedData = useMemo(() => {
+        if (currentQueryInfo?.name.toUpperCase() !== 'TRACK & TRACE CONSIGNMENTS (YLA)') return [];
+
+        // Aggregate by month and OpsSource
+        const byMonthAndSource: { [key: string]: { [source: string]: number } } = {};
+        filteredData.forEach(item => {
+            const monthKey = `${item.year}-${String(item.month).padStart(2, '0')}`;
+            const source = item.value04 || 'Unknown';
+            if (!byMonthAndSource[monthKey]) byMonthAndSource[monthKey] = {};
+            byMonthAndSource[monthKey][source] = (byMonthAndSource[monthKey][source] || 0) + item.recordCount;
+        });
+
+        // Get top 6 sources, group rest as "Other"
+        const allSources = new Set<string>();
+        Object.values(byMonthAndSource).forEach(monthData => {
+            Object.keys(monthData).forEach(source => allSources.add(source));
+        });
+        const sourceTotals = Array.from(allSources).map(source => ({
+            source,
+            total: Object.values(byMonthAndSource).reduce((sum, monthData) => sum + (monthData[source] || 0), 0)
+        })).sort((a, b) => b.total - a.total);
+
+        const topSources = sourceTotals.slice(0, 6).map(s => s.source);
+
+        // Build final array
+        return Object.keys(byMonthAndSource).sort().map(monthKey => {
+            const result: any = { month: monthKey };
+            topSources.forEach(source => {
+                result[source] = byMonthAndSource[monthKey][source] || 0;
+            });
+            result['Other'] = Object.keys(byMonthAndSource[monthKey])
+                .filter(s => !topSources.includes(s))
+                .reduce((sum, s) => sum + byMonthAndSource[monthKey][s], 0);
+            return result;
+        });
     }, [filteredData, currentQueryInfo]);
+
+    // Visualization 2: Volume + Customers - Combo Chart
+    const volumeCustomersComboData = useMemo(() => {
+        if (currentQueryInfo?.name.toUpperCase() !== 'TRACK & TRACE CONSIGNMENTS (YLA)') return [];
+
+        const byMonth: { [key: string]: { records: number, customers: Set<string> } } = {};
+        filteredData.forEach(item => {
+            const monthKey = `${item.year}-${String(item.month).padStart(2, '0')}`;
+            if (!byMonth[monthKey]) byMonth[monthKey] = { records: 0, customers: new Set() };
+            byMonth[monthKey].records += item.recordCount;
+            if (item.value06 && item.value06.toUpperCase() !== 'NULL') {
+                byMonth[monthKey].customers.add(item.value06);
+            }
+        });
+
+        return Object.keys(byMonth).sort().map(month => ({
+            month,
+            records: byMonth[month].records,
+            customers: byMonth[month].customers.size
+        }));
+    }, [filteredData, currentQueryInfo]);
+
+    // Visualization 3: Country-Month Heatmap
+    const countryMonthHeatmapData = useMemo(() => {
+        if (currentQueryInfo?.name.toUpperCase() !== 'TRACK & TRACE CONSIGNMENTS (YLA)') return [];
+
+        // Aggregate by country and month
+        const byCountryMonth: { [country: string]: { [month: number]: number } } = {};
+        filteredData.forEach(item => {
+            const country = item.value01 || 'Unknown';
+            if (!byCountryMonth[country]) byCountryMonth[country] = {};
+            byCountryMonth[country][item.month] = (byCountryMonth[country][item.month] || 0) + item.recordCount;
+        });
+
+        // Get top 12 countries by total volume
+        const countryTotals = Object.keys(byCountryMonth).map(country => ({
+            country,
+            total: Object.values(byCountryMonth[country]).reduce((sum, val) => sum + val, 0)
+        })).sort((a, b) => b.total - a.total).slice(0, 12);
+
+        // Build data for heatmap
+        return countryTotals.map(({ country }) => {
+            const row: any = { country };
+            for (let month = 1; month <= 12; month++) {
+                row[`m${month}`] = byCountryMonth[country][month] || 0;
+            }
+            return row;
+        });
+    }, [filteredData, currentQueryInfo]);
+
+    // Visualization 4: OpsSource Treemap
+    const opsSourceTreemapData = useMemo(() => {
+        if (currentQueryInfo?.name.toUpperCase() !== 'TRACK & TRACE CONSIGNMENTS (YLA)') return [];
+
+        // Aggregate by OpsSource and Customer
+        const bySourceCustomer: { [source: string]: { [customer: string]: number } } = {};
+        filteredData.forEach(item => {
+            const source = item.value04 || 'Unknown';
+            const customer = item.value06 || 'Unknown';
+            if (!bySourceCustomer[source]) bySourceCustomer[source] = {};
+            bySourceCustomer[source][customer] = (bySourceCustomer[source][customer] || 0) + item.recordCount;
+        });
+
+        // Build treemap structure
+        return Object.keys(bySourceCustomer).map(source => {
+            const customers = Object.keys(bySourceCustomer[source])
+                .map(customer => ({
+                    name: customer,
+                    value: bySourceCustomer[source][customer]
+                }))
+                .sort((a, b) => b.value - a.value)
+                .slice(0, 3); // Top 3 customers per source
+
+            return {
+                name: source,
+                children: customers
+            };
+        });
+    }, [filteredData, currentQueryInfo]);
+
+    const kpiData = useMemo(() => {
+        if (currentQueryInfo?.name.toUpperCase() !== 'TRACK & TRACE CONSIGNMENTS (YLA)') {
+            return { totalRecords: 0, uniqueCountries: 0, dateRange: '', uniqueCustomers: 0 };
+        }
+
+        if (!filteredData || filteredData.length === 0) {
+            return { totalRecords: 0, uniqueCountries: 0, dateRange: 'N/A', uniqueCustomers: 0 };
+        }
+
+        const totalRecords = filteredData.reduce((sum, item) => sum + item.recordCount, 0);
+        const uniqueCountries = new Set(filteredData.map(item => item.value01).filter(Boolean)).size;
+        const uniqueCustomers = new Set(
+            filteredData
+                .map(item => item.value06 ? String(item.value06).trim() : '')
+                .filter(name => name && name.toUpperCase() !== 'NULL')
+        ).size;
+
+        const years = filteredData.map(item => item.year).filter(y => y != null);
+        const months = filteredData.map(item => item.month).filter(m => m != null);
+
+        if (years.length === 0 || months.length === 0) {
+            return { totalRecords, uniqueCountries, dateRange: 'N/A', uniqueCustomers };
+        }
+
+        // Use reduce to avoid stack overflow with large arrays
+        const minYear = years.reduce((min, y) => y < min ? y : min, years[0]);
+        const maxYear = years.reduce((max, y) => y > max ? y : max, years[0]);
+
+        // Get months for min and max years
+        const minYearMonths = filteredData.filter(item => item.year === minYear).map(item => item.month).filter(m => m != null);
+        const maxYearMonths = filteredData.filter(item => item.year === maxYear).map(item => item.month).filter(m => m != null);
+
+        const minMonth = minYearMonths.length > 0 ? minYearMonths.reduce((min, m) => m < min ? m : min, minYearMonths[0]) : 1;
+        const maxMonth = maxYearMonths.length > 0 ? maxYearMonths.reduce((max, m) => m > max ? m : max, maxYearMonths[0]) : 12;
+
+        const dateRange = `${minYear}-${String(minMonth).padStart(2, '0')} to ${maxYear}-${String(maxMonth).padStart(2, '0')}`;
+
+        return { totalRecords, uniqueCountries, dateRange, uniqueCustomers };
+    }, [filteredData, currentQueryInfo]);
+
+    const opsSourceCodeData = useMemo(() => {
+        const queryName = currentQueryInfo?.name.toUpperCase();
+        if (queryName !== 'TRACK & TRACE CONSIGNMENTS (YLA)' && queryName !== 'TRACK & TRACE CONSIGNMENTS (YLB)') return [];
+
+        const byCode: { [key: string]: { value: number, description: string } } = {};
+        filteredData.forEach(item => {
+            const code = item.value04 || 'N/A';
+            const desc = item.value05 || '';
+            if (!byCode[code]) {
+                byCode[code] = { value: 0, description: desc };
+            }
+            byCode[code].value += item.recordCount;
+        });
+
+        // For YLA query, apply Top N logic with Others grouping
+        if (queryName === 'TRACK & TRACE CONSIGNMENTS (YLA)') {
+            const sorted = Object.entries(byCode)
+                .map(([code, data]) => ({
+                    name: desc => code + (data.description ? ` - ${data.description}` : ''),
+                    displayName: code + (data.description ? ` - ${data.description}` : ''),
+                    value: data.value
+                }))
+                .sort((a, b) => b.value - a.value);
+
+            if (sorted.length > opsSourceTopN) {
+                const topItems = sorted.slice(0, opsSourceTopN);
+                const othersValue = sorted.slice(opsSourceTopN).reduce((sum, item) => sum + item.value, 0);
+                return [
+                    ...topItems.map(item => ({ name: item.displayName, value: item.value })),
+                    { name: 'Others', value: othersValue }
+                ];
+            }
+            return sorted.map(item => ({ name: item.displayName, value: item.value }));
+        }
+
+        // For YL query, show all with Code - Description
+        return Object.entries(byCode).map(([code, data]) => ({
+            name: code + (data.description ? ` - ${data.description}` : ''),
+            value: data.value
+        }));
+    }, [filteredData, currentQueryInfo, opsSourceTopN]);
 
     const billingByProductData = useMemo(() => {
         if (!currentQueryInfo?.name.toUpperCase().includes('INVOICED CONSIGNMENTS (YI)')) return [];
@@ -1876,93 +2258,412 @@ const MigrationDashboard: React.FC = () => {
                     </div>
                 </div>
             );
-            case 'TRACK & TRACE CONSIGNMENTS (YL)': return (
-                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            case 'TRACK & TRACE CONSIGNMENTS (YLA)': return (
+                <>
+                    {/* Loading Indicator */}
+                    {(loadingState.phase !== 'complete' || loadingState.currentlyLoading === 'track_trace_con_yla') && (
+                        <div className="bg-surface p-8 rounded-lg shadow-md mb-6 border border-secondary/20">
+                            <div className="flex flex-col items-center justify-center gap-4">
+                                <div className="w-12 h-12 border-4 border-accent/30 border-t-accent rounded-full animate-spin"></div>
+                                <p className="text-text-secondary">Loading data... This may take a moment for large datasets (1.5M+ rows)</p>
+                                {loadingState.currentlyLoading && (
+                                    <p className="text-sm text-text-secondary">Currently loading: {loadingState.currentlyLoading}</p>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Charts Grid */}
+                    {/* First Row: Ops Source Distribution + placeholder for new viz */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                        {/* Ops Source Code Distribution (Code - Description) */}
+                        <div className="bg-surface p-4 rounded-lg shadow-md">
+                            <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
+                                <h3 className="text-lg font-semibold">Ops Source Code Distribution</h3>
+                                <div className="flex items-center gap-2">
+                                    <select
+                                        value={opsSourceTopN}
+                                        onChange={(e) => setOpsSourceTopN(Number(e.target.value))}
+                                        className="px-2 py-1 text-sm bg-background border border-secondary/20 rounded-md focus:outline-none focus:ring-1 focus:ring-accent"
+                                    >
+                                        <option value={10}>Top 10</option>
+                                        <option value={20}>Top 20</option>
+                                        <option value={9999}>Show All</option>
+                                    </select>
+                                    <label className="flex items-center gap-2 cursor-pointer bg-background px-3 py-2 rounded-md border border-secondary/20">
+                                        <span className="text-xs text-text-secondary">Exclude FX</span>
+                                        <div className="relative">
+                                            <input
+                                                type="checkbox"
+                                                checked={includeOpsSourceFX}
+                                                onChange={(e) => setIncludeOpsSourceFX(e.target.checked)}
+                                                className="sr-only peer"
+                                            />
+                                            <div className="w-9 h-5 bg-secondary/30 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-accent rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-accent"></div>
+                                        </div>
+                                        <span className="text-xs text-text-secondary">Include FX</span>
+                                    </label>
+                                    {availableOpsSourceCodes.length > 0 && (
+                                        <div className="relative" ref={opsSourceDropdownRef}>
+                                            <button
+                                                onClick={() => setIsOpsSourceDropdownOpen(!isOpsSourceDropdownOpen)}
+                                                className="flex items-center gap-2 px-3 py-2 rounded-md text-sm bg-background border border-secondary/20 hover:bg-secondary/30"
+                                            >
+                                                <IconFilter />
+                                                Ops Codes {selectedOpsSourceCodes.length > 0 && `(${selectedOpsSourceCodes.length})`}
+                                                <IconChevronDown className={`transform transition-transform ${isOpsSourceDropdownOpen ? 'rotate-180' : ''}`} />
+                                            </button>
+                                            {isOpsSourceDropdownOpen && (
+                                                <div className="absolute right-0 mt-2 w-64 bg-surface border border-secondary/20 rounded-md shadow-lg z-50 max-h-96 overflow-y-auto">
+                                                    <div className="p-2 border-b border-secondary/20">
+                                                        <div className="flex gap-2">
+                                                            <button
+                                                                onClick={() => setSelectedOpsSourceCodes(availableOpsSourceCodes)}
+                                                                className="flex-1 px-2 py-1 text-xs bg-accent/20 hover:bg-accent/30 rounded"
+                                                            >
+                                                                Select All
+                                                            </button>
+                                                            <button
+                                                                onClick={() => setSelectedOpsSourceCodes([])}
+                                                                className="flex-1 px-2 py-1 text-xs bg-secondary/20 hover:bg-secondary/30 rounded"
+                                                            >
+                                                                Clear
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                    <div className="p-2">
+                                                        {availableOpsSourceCodes.map(code => (
+                                                            <label key={code} className="flex items-center gap-2 px-2 py-1 hover:bg-secondary/20 rounded cursor-pointer">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={selectedOpsSourceCodes.includes(code)}
+                                                                    onChange={(e) => {
+                                                                        if (e.target.checked) {
+                                                                            setSelectedOpsSourceCodes([...selectedOpsSourceCodes, code]);
+                                                                        } else {
+                                                                            setSelectedOpsSourceCodes(selectedOpsSourceCodes.filter(c => c !== code));
+                                                                        }
+                                                                    }}
+                                                                    className="rounded"
+                                                                />
+                                                                <span className="text-sm">{code}</span>
+                                                            </label>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                            <ResponsiveContainer width="100%" height={400}>
+                                <PieChart>
+                                    <Pie data={opsSourceCodeData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={120} label={({ value }) => value.toLocaleString()}>
+                                        {opsSourceCodeData.map((entry, index) => ( <Cell key={`cell-${index}`} fill={theme.colors['chart-categorical'][index % theme.colors['chart-categorical'].length]} /> ))}
+                                    </Pie>
+                                    <Tooltip formatter={(value: number) => value.toLocaleString()} contentStyle={{ backgroundColor: `rgb(${theme.colors.surface})`, borderColor: `rgb(${theme.colors.secondary}/0.2)`}}/>
+                                    <Legend />
+                                </PieChart>
+                            </ResponsiveContainer>
+                        </div>
+
+                        {/* Visualization 1: Monthly Trend - Stacked Area Chart */}
+                        <div className="bg-surface p-4 rounded-lg shadow-md">
+                            <h3 className="text-lg font-semibold mb-4">Volume Trend by OpsSource</h3>
+                            <ResponsiveContainer width="100%" height={350}>
+                                <AreaChart data={monthlyTrendStackedData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke={`rgb(${theme.colors['text-secondary']}/0.1)`} />
+                                    <XAxis
+                                        dataKey="month"
+                                        stroke={`rgb(${theme.colors['text-secondary']})`}
+                                        fontSize={10}
+                                        angle={-45}
+                                        textAnchor="end"
+                                        height={60}
+                                    />
+                                    <YAxis
+                                        stroke={`rgb(${theme.colors['text-secondary']})`}
+                                        fontSize={12}
+                                        tickFormatter={(value) => formatNumber(value)}
+                                    />
+                                    <Tooltip
+                                        formatter={(value: number) => value.toLocaleString()}
+                                        contentStyle={{ backgroundColor: `rgb(${theme.colors.surface})`, borderColor: `rgb(${theme.colors.secondary}/0.2)`}}
+                                    />
+                                    <Legend wrapperStyle={{ fontSize: '12px' }} />
+                                    {monthlyTrendStackedData.length > 0 && Object.keys(monthlyTrendStackedData[0])
+                                        .filter(key => key !== 'month')
+                                        .map((source, index) => (
+                                            <Area
+                                                key={source}
+                                                type="monotone"
+                                                dataKey={source}
+                                                stackId="1"
+                                                stroke={theme.colors['chart-categorical'][index % theme.colors['chart-categorical'].length]}
+                                                fill={theme.colors['chart-categorical'][index % theme.colors['chart-categorical'].length]}
+                                                fillOpacity={0.6}
+                                            />
+                                        ))
+                                    }
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+
+                    {/* Second Row: Top Customers and Top Countries */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {/* Top Customers */}
+                        <div className="bg-surface p-4 rounded-lg shadow-md">
+                            <TopNSelector title="Top Customers" />
+                            <ResponsiveContainer width="100%" height={400}>
+                                <BarChart data={topCustomersData} layout="vertical" margin={{ left: 30, right: 40 }}>
+                                    <CartesianGrid stroke={`rgb(${theme.colors['text-secondary']}/0.1)`} />
+                                    <XAxis type="number" stroke={`rgb(${theme.colors['text-secondary']})`} fontSize={12} tickFormatter={(value) => formatNumber(value)} />
+                                    <YAxis
+                                        type="category"
+                                        dataKey="customer"
+                                        stroke={`rgb(${theme.colors['text-secondary']})`}
+                                        fontSize={9}
+                                        width={120}
+                                        tick={({ x, y, payload }: any) => {
+                                            const maxLength = 18;
+                                            const text = payload.value;
+                                            const truncated = text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
+                                            return (
+                                                <text x={x} y={y} dy={4} textAnchor="end" fill={`rgb(${theme.colors['text-secondary']})`} fontSize={9}>
+                                                    {truncated}
+                                                </text>
+                                            );
+                                        }}
+                                    />
+                                    <Tooltip
+                                        formatter={(value: number) => value.toLocaleString()}
+                                        cursor={{ fill: `rgb(${theme.colors.secondary}/0.1)` }}
+                                        contentStyle={{ backgroundColor: `rgb(${theme.colors.surface})`, borderColor: `rgb(${theme.colors.secondary}/0.2)`}}
+                                    />
+                                    <Bar dataKey="records" fill={`rgb(${theme.colors.warning})`} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+
+                        {/* Top Countries */}
+                        <div className="bg-surface p-4 rounded-lg shadow-md">
+                            <TopNSelector title="Top Countries" />
+                            <ResponsiveContainer width="100%" height={400}>
+                                <BarChart data={topCountriesData} layout="vertical" margin={{ left: 30, right: 40 }}>
+                                    <CartesianGrid stroke={`rgb(${theme.colors['text-secondary']}/0.1)`} />
+                                    <XAxis type="number" stroke={`rgb(${theme.colors['text-secondary']})`} fontSize={12} tickFormatter={(value) => formatNumber(value)} />
+                                    <YAxis
+                                        type="category"
+                                        dataKey="country"
+                                        stroke={`rgb(${theme.colors['text-secondary']})`}
+                                        fontSize={10}
+                                        width={100}
+                                        interval={0}
+                                        tick={({ x, y, payload }: any) => (
+                                            <text x={x} y={y} dy={4} textAnchor="end" fill={`rgb(${theme.colors['text-secondary']})`} fontSize={10}>
+                                                {countryCodeMap[payload.value] || payload.value}
+                                            </text>
+                                        )}
+                                    />
+                                    <Tooltip content={<CustomCountryTooltip />} cursor={{ fill: `rgb(${theme.colors.secondary}/0.1)` }} />
+                                    <Bar dataKey="records" fill={`rgb(${theme.colors.info})`} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+
+                    {/* Additional Visualizations Row 1: Combo Chart and Heatmap */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {/* Visualization 2: Volume + Customers - Combo Chart */}
+                        <div className="bg-surface p-4 rounded-lg shadow-md">
+                            <h3 className="text-lg font-semibold mb-4">Volume & Customer Growth</h3>
+                            <ResponsiveContainer width="100%" height={350}>
+                                <ComposedChart data={volumeCustomersComboData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke={`rgb(${theme.colors['text-secondary']}/0.1)`} />
+                                    <XAxis
+                                        dataKey="month"
+                                        stroke={`rgb(${theme.colors['text-secondary']})`}
+                                        fontSize={10}
+                                        angle={-45}
+                                        textAnchor="end"
+                                        height={60}
+                                    />
+                                    <YAxis
+                                        yAxisId="left"
+                                        stroke={`rgb(${theme.colors['text-secondary']})`}
+                                        fontSize={12}
+                                        tickFormatter={(value) => formatNumber(value)}
+                                        label={{ value: 'Records', angle: -90, position: 'insideLeft', style: { fontSize: 12 } }}
+                                    />
+                                    <YAxis
+                                        yAxisId="right"
+                                        orientation="right"
+                                        stroke={`rgb(${theme.colors['text-secondary']})`}
+                                        fontSize={12}
+                                        label={{ value: 'Customers', angle: 90, position: 'insideRight', style: { fontSize: 12 } }}
+                                    />
+                                    <Tooltip
+                                        formatter={(value: number) => value.toLocaleString()}
+                                        contentStyle={{ backgroundColor: `rgb(${theme.colors.surface})`, borderColor: `rgb(${theme.colors.secondary}/0.2)`}}
+                                    />
+                                    <Legend wrapperStyle={{ fontSize: '12px' }} />
+                                    <Bar yAxisId="left" dataKey="records" fill={`rgb(${theme.colors.accent})`} name="Records" />
+                                    <Line
+                                        yAxisId="right"
+                                        type="monotone"
+                                        dataKey="customers"
+                                        stroke={`rgb(${theme.colors.success})`}
+                                        strokeWidth={2}
+                                        name="Unique Customers"
+                                        dot={{ r: 4 }}
+                                    />
+                                </ComposedChart>
+                            </ResponsiveContainer>
+                        </div>
+
+                        {/* Visualization 3: Country-Month Heatmap */}
+                        <div className="bg-surface p-4 rounded-lg shadow-md">
+                            <h3 className="text-lg font-semibold mb-4">Country Activity Heatmap</h3>
+                            <div className="overflow-x-auto">
+                                <div style={{ minWidth: '600px', height: '350px', overflowY: 'auto' }}>
+                                    {countryMonthHeatmapData.length > 0 && (
+                                        <table className="w-full text-xs border-collapse">
+                                            <thead className="sticky top-0 bg-surface">
+                                                <tr>
+                                                    <th className="border border-secondary/20 p-1 text-left bg-surface/95">Country</th>
+                                                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(month => (
+                                                        <th key={month} className="border border-secondary/20 p-1 text-center bg-surface/95">
+                                                            {new Date(2000, month - 1).toLocaleString('default', { month: 'short' })}
+                                                        </th>
+                                                    ))}
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {countryMonthHeatmapData.map((row, rowIndex) => {
+                                                    const maxVal = Math.max(...[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(m => row[`m${m}`] || 0));
+                                                    return (
+                                                        <tr key={rowIndex}>
+                                                            <td className="border border-secondary/20 p-1 font-semibold">
+                                                                {countryCodeMap[row.country] || row.country}
+                                                            </td>
+                                                            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(month => {
+                                                                const value = row[`m${month}`] || 0;
+                                                                const intensity = maxVal > 0 ? value / maxVal : 0;
+                                                                const bgColor = `rgba(${theme.colors.info}, ${intensity * 0.8 + 0.1})`;
+                                                                return (
+                                                                    <td
+                                                                        key={month}
+                                                                        className="border border-secondary/20 p-1 text-center"
+                                                                        style={{ backgroundColor: bgColor }}
+                                                                        title={`${countryCodeMap[row.country] || row.country} - ${new Date(2000, month - 1).toLocaleString('default', { month: 'short' })}: ${value.toLocaleString()}`}
+                                                                    >
+                                                                        {value > 0 ? formatNumber(value) : '—'}
+                                                                    </td>
+                                                                );
+                                                            })}
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                        </table>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Additional Visualizations Row 2: Treemap */}
+                    <div className="grid grid-cols-1 gap-6">
+                        {/* Visualization 4: OpsSource Treemap */}
+                        <div className="bg-surface p-4 rounded-lg shadow-md">
+                            <h3 className="text-lg font-semibold mb-4">OpsSource Distribution (Top 3 Customers per Source)</h3>
+                            <ResponsiveContainer width="100%" height={400}>
+                                <Treemap
+                                    data={opsSourceTreemapData}
+                                    dataKey="value"
+                                    stroke="#fff"
+                                    fill={`rgb(${theme.colors.info})`}
+                                    content={({ x, y, width, height, index, name, value, depth }: any) => {
+                                        if (!name) return null;
+                                        const colors = theme.colors['chart-categorical'];
+                                        const color = depth === 1 ? colors[index % colors.length] : colors[(index + 3) % colors.length];
+                                        const textColor = depth === 1 ? '#fff' : '#000';
+                                        const fontSize = depth === 1 ? 14 : 11;
+                                        const padding = 4;
+
+                                        return (
+                                            <g>
+                                                <rect
+                                                    x={x}
+                                                    y={y}
+                                                    width={width}
+                                                    height={height}
+                                                    style={{
+                                                        fill: color,
+                                                        stroke: '#fff',
+                                                        strokeWidth: 2,
+                                                        opacity: depth === 1 ? 0.9 : 0.7
+                                                    }}
+                                                />
+                                                {width > 50 && height > 30 && (
+                                                    <>
+                                                        <text
+                                                            x={x + width / 2}
+                                                            y={y + height / 2 - (value ? 8 : 0)}
+                                                            textAnchor="middle"
+                                                            fill={textColor}
+                                                            fontSize={fontSize}
+                                                            fontWeight={depth === 1 ? 'bold' : 'normal'}
+                                                        >
+                                                            {name.length > 20 ? name.substring(0, 18) + '...' : name}
+                                                        </text>
+                                                        {value && (
+                                                            <text
+                                                                x={x + width / 2}
+                                                                y={y + height / 2 + 12}
+                                                                textAnchor="middle"
+                                                                fill={textColor}
+                                                                fontSize={fontSize - 2}
+                                                            >
+                                                                {value.toLocaleString()}
+                                                            </text>
+                                                        )}
+                                                    </>
+                                                )}
+                                            </g>
+                                        );
+                                    }}
+                                >
+                                    <Tooltip
+                                        formatter={(value: number) => value.toLocaleString()}
+                                        contentStyle={{ backgroundColor: `rgb(${theme.colors.surface})`, borderColor: `rgb(${theme.colors.secondary}/0.2)`}}
+                                    />
+                                </Treemap>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+                </>
+            );
+            case 'TRACK & TRACE CONSIGNMENTS (YLB)': return (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <div className="bg-surface p-4 rounded-lg shadow-md">
                         <TopNSelector title="Top Origin Countries" />
                         <ResponsiveContainer width="100%" height={300}>
-                             <BarChart data={topOriginCountriesData} layout="vertical" margin={{ left: 30, right: 40 }}>
+                            <BarChart data={transitCountryData} layout="vertical" margin={{ left: 30, right: 40 }}>
                                 <CartesianGrid stroke={`rgb(${theme.colors['text-secondary']}/0.1)`} />
                                 <XAxis type="number" stroke={`rgb(${theme.colors['text-secondary']})`} fontSize={12} tickFormatter={(value) => formatNumber(value)} />
-                                <YAxis type="category" dataKey="country" stroke={`rgb(${theme.colors['text-secondary']})`} fontSize={10} width={100} tick={({ x, y, payload }: any) => ( <text x={x} y={y} dy={4} textAnchor="end" fill={`rgb(${theme.colors['text-secondary']})`} fontSize={10}> {countryCodeMap[payload.value] || payload.value} </text> )}/>
+                                <YAxis type="category" dataKey="country" stroke={`rgb(${theme.colors['text-secondary']})`} fontSize={10} width={100} interval={0} tick={({ x, y, payload }: any) => ( <text x={x} y={y} dy={4} textAnchor="end" fill={`rgb(${theme.colors['text-secondary']})`} fontSize={10}> {countryCodeMap[payload.value] || payload.value} </text> )}/>
                                 <Tooltip content={<CustomCountryTooltip />} cursor={{ fill: `rgb(${theme.colors.secondary}/0.1)` }} />
                                 <Bar dataKey="records" fill={`rgb(${theme.colors.info})`} />
                             </BarChart>
                         </ResponsiveContainer>
                     </div>
                     <div className="bg-surface p-4 rounded-lg shadow-md">
-                        <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
-                            <h3 className="text-lg font-semibold">Ops Source Code Distribution</h3>
-                            <div className="flex items-center gap-2">
-                                <label className="flex items-center gap-2 cursor-pointer bg-background px-3 py-2 rounded-md border border-secondary/20">
-                                    <span className="text-xs text-text-secondary">Exclude FX</span>
-                                    <div className="relative">
-                                        <input
-                                            type="checkbox"
-                                            checked={includeOpsSourceFX}
-                                            onChange={(e) => setIncludeOpsSourceFX(e.target.checked)}
-                                            className="sr-only peer"
-                                        />
-                                        <div className="w-9 h-5 bg-secondary/30 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-accent rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-accent"></div>
-                                    </div>
-                                    <span className="text-xs text-text-secondary">Include FX</span>
-                                </label>
-                                {availableOpsSourceCodes.length > 0 && (
-                                    <div className="relative" ref={opsSourceDropdownRef}>
-                                        <button
-                                            onClick={() => setIsOpsSourceDropdownOpen(!isOpsSourceDropdownOpen)}
-                                            className="flex items-center gap-2 px-3 py-2 rounded-md text-sm bg-background border border-secondary/20 hover:bg-secondary/30"
-                                        >
-                                            <IconFilter />
-                                            Ops Codes {selectedOpsSourceCodes.length > 0 && `(${selectedOpsSourceCodes.length})`}
-                                            <IconChevronDown className={`transform transition-transform ${isOpsSourceDropdownOpen ? 'rotate-180' : ''}`} />
-                                        </button>
-                                        {isOpsSourceDropdownOpen && (
-                                            <div className="absolute right-0 mt-2 w-64 bg-surface border border-secondary/20 rounded-md shadow-lg z-50 max-h-96 overflow-y-auto">
-                                                <div className="p-2 border-b border-secondary/20">
-                                                    <div className="flex gap-2">
-                                                        <button
-                                                            onClick={() => setSelectedOpsSourceCodes(availableOpsSourceCodes)}
-                                                            className="flex-1 px-2 py-1 text-xs bg-accent/20 hover:bg-accent/30 rounded"
-                                                        >
-                                                            Select All
-                                                        </button>
-                                                        <button
-                                                            onClick={() => setSelectedOpsSourceCodes([])}
-                                                            className="flex-1 px-2 py-1 text-xs bg-secondary/20 hover:bg-secondary/30 rounded"
-                                                        >
-                                                            Clear
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                                <div className="p-2">
-                                                    {availableOpsSourceCodes.map(code => (
-                                                        <label key={code} className="flex items-center gap-2 px-2 py-1 hover:bg-secondary/20 rounded cursor-pointer">
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={selectedOpsSourceCodes.includes(code)}
-                                                                onChange={(e) => {
-                                                                    if (e.target.checked) {
-                                                                        setSelectedOpsSourceCodes([...selectedOpsSourceCodes, code]);
-                                                                    } else {
-                                                                        setSelectedOpsSourceCodes(selectedOpsSourceCodes.filter(c => c !== code));
-                                                                    }
-                                                                }}
-                                                                className="rounded"
-                                                            />
-                                                            <span className="text-sm">{code}</span>
-                                                        </label>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                         <ResponsiveContainer width="100%" height={400}>
+                        <h3 className="text-lg font-semibold mb-4">Ops Source Code Distribution</h3>
+                        <ResponsiveContainer width="100%" height={300}>
                             <PieChart>
-                                <Pie data={opsSourceCodeData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={120} label={({ value }) => value.toLocaleString()}>
+                                <Pie data={opsSourceCodeData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label={({ value }) => value.toLocaleString()}>
                                     {opsSourceCodeData.map((entry, index) => ( <Cell key={`cell-${index}`} fill={theme.colors['chart-categorical'][index % theme.colors['chart-categorical'].length]} /> ))}
                                 </Pie>
                                 <Tooltip formatter={(value: number) => value.toLocaleString()} contentStyle={{ backgroundColor: `rgb(${theme.colors.surface})`, borderColor: `rgb(${theme.colors.secondary}/0.2)`}}/>
@@ -2298,7 +2999,7 @@ const MigrationDashboard: React.FC = () => {
     }
 
     return (
-        <div className="flex flex-col h-screen bg-background">
+        <div className="flex flex-col min-h-screen bg-background">
             {/* Background Loading Banner */}
             {loadingState.phase === 'loading_background' && (
                 <div className="bg-info/10 border-b border-info/20 px-4 py-3">
@@ -2343,9 +3044,9 @@ const MigrationDashboard: React.FC = () => {
             )}
 
             {/* Main Content Area */}
-            <div className="flex-1 flex flex-col overflow-hidden">
+            <div className="flex-1 flex flex-col">
                 {/* Top Bar with Filters */}
-                <div className="bg-surface border-b border-secondary/20 p-4">
+                <div className="bg-surface border-b border-secondary/20 p-4 sticky top-0 z-10">
                     <div className="mb-4">
                         <h1 className="text-xl font-semibold text-text-primary">Migration Dashboard</h1>
                         <p className="text-xs text-text-secondary">Mainframe Data Analysis</p>
@@ -2416,7 +3117,7 @@ const MigrationDashboard: React.FC = () => {
                 </div>
 
                 {/* Scrollable Content */}
-                <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+                <div className="flex-1 p-4 sm:p-6">
                     {error && <div className="bg-red-900/50 border border-red-500 text-red-200 px-4 py-3 rounded-lg mb-6" role="alert"><strong className="font-bold">Error: </strong><span className="block sm:inline">{error}</span></div>}
 
              {showFilters && (
@@ -2546,6 +3247,185 @@ const MigrationDashboard: React.FC = () => {
                 </div>
              )}
 
+            {/* Query 2a (YLA) Filters - Above the trend */}
+            {selectedQuery === 'track_trace_con_yla' && (
+                <div className="bg-surface p-4 rounded-lg mb-6 shadow-md border border-secondary/20">
+                    <div className="flex items-center justify-between flex-wrap gap-3">
+                        <h3 className="font-medium">Filters</h3>
+
+                        {/* Country Filter - Inline */}
+                        <div className="flex items-center gap-2">
+                            <label className="text-sm font-medium whitespace-nowrap">Country:</label>
+                            <button
+                                onClick={() => setShowFilters(!showFilters)}
+                                className="flex items-center gap-2 px-3 py-1.5 rounded-md text-sm bg-background border border-secondary/20 hover:bg-secondary/30 whitespace-nowrap"
+                            >
+                                <IconFilter className="w-3 h-3" />
+                                <span>{selectedCountries.length !== allCountriesInData.length ? `${selectedCountries.length} selected` : 'All'}</span>
+                                <IconChevronDown className={`w-3 h-3 transform transition-transform ${showFilters ? 'rotate-180' : ''}`} />
+                            </button>
+                        </div>
+
+                        {/* Source Description Filter - Inline */}
+                        <div className="flex items-center gap-2">
+                            <label className="text-sm font-medium whitespace-nowrap">Source:</label>
+                            {availableSourceDescriptions.length > 0 && (
+                                <div className="relative" ref={sourceDescDropdownRef}>
+                                    <button
+                                        onClick={() => setIsSourceDescDropdownOpen(!isSourceDescDropdownOpen)}
+                                        className="flex items-center gap-2 px-3 py-1.5 rounded-md text-sm bg-background border border-secondary/20 hover:bg-secondary/30 whitespace-nowrap"
+                                    >
+                                        <IconFilter className="w-3 h-3" />
+                                        <span>{selectedSourceDescriptions.length > 0 ? `${selectedSourceDescriptions.length} selected` : 'All'}</span>
+                                        <IconChevronDown className={`w-3 h-3 transform transition-transform ${isSourceDescDropdownOpen ? 'rotate-180' : ''}`} />
+                                    </button>
+                                    {isSourceDescDropdownOpen && (
+                                        <div className="absolute right-0 mt-2 w-80 bg-surface border border-secondary/20 rounded-md shadow-lg z-50 max-h-60 overflow-y-auto">
+                                            <div className="p-2 border-b border-secondary/20">
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        onClick={() => setSelectedSourceDescriptions(availableSourceDescriptions.map(item => item.code))}
+                                                        className="flex-1 px-2 py-1 text-xs bg-accent/20 hover:bg-accent/30 rounded"
+                                                    >
+                                                        Select All
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setSelectedSourceDescriptions([])}
+                                                        className="flex-1 px-2 py-1 text-xs bg-secondary/20 hover:bg-secondary/30 rounded"
+                                                    >
+                                                        Clear
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div className="p-2">
+                                                {availableSourceDescriptions.map(item => (
+                                                    <label key={item.code} className="flex items-center gap-2 px-2 py-1 hover:bg-secondary/20 rounded cursor-pointer">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={selectedSourceDescriptions.includes(item.code)}
+                                                            onChange={(e) => {
+                                                                if (e.target.checked) {
+                                                                    setSelectedSourceDescriptions([...selectedSourceDescriptions, item.code]);
+                                                                } else {
+                                                                    setSelectedSourceDescriptions(selectedSourceDescriptions.filter(d => d !== item.code));
+                                                                }
+                                                            }}
+                                                            className="rounded"
+                                                        />
+                                                        <span className="text-sm">{item.code} - {item.description}</span>
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Customer Name Filter - Inline */}
+                        <div className="flex items-center gap-2">
+                            <label className="text-sm font-medium whitespace-nowrap">Customer:</label>
+                            <div className="relative" ref={customerDropdownRef}>
+                                <input
+                                    type="text"
+                                    placeholder="Type min 3 chars..."
+                                    value={customerSearchText}
+                                    onChange={(e) => {
+                                        setCustomerSearchText(e.target.value);
+                                        if (e.target.value.length >= 3) {
+                                            setIsCustomerDropdownOpen(true);
+                                        } else {
+                                            setIsCustomerDropdownOpen(false);
+                                        }
+                                    }}
+                                    onFocus={() => customerSearchText.length >= 3 && setIsCustomerDropdownOpen(true)}
+                                    className="w-48 bg-background border border-secondary/20 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-accent"
+                                />
+                                {isCustomerDropdownOpen && customerSearchResults.length > 0 && customerSearchText.length >= 3 && (
+                                    <div className="absolute z-50 mt-1 w-64 bg-surface border border-secondary/20 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                                        <div className="p-2 border-b border-secondary/20 flex gap-2 sticky top-0 bg-surface">
+                                            <button
+                                                onClick={() => {
+                                                    setSelectedCustomerNames([...new Set([...selectedCustomerNames, ...customerSearchResults])]);
+                                                }}
+                                                className="flex-1 px-2 py-1 text-xs bg-accent/20 hover:bg-accent/30 rounded"
+                                            >
+                                                Select All
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    setSelectedCustomerNames(selectedCustomerNames.filter(c => !customerSearchResults.includes(c)));
+                                                }}
+                                                className="flex-1 px-2 py-1 text-xs bg-secondary/20 hover:bg-secondary/30 rounded"
+                                            >
+                                                Clear All
+                                            </button>
+                                        </div>
+                                        {customerSearchResults.map(customer => (
+                                            <label key={customer} className="flex items-center gap-2 px-3 py-2 hover:bg-secondary/20 cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedCustomerNames.includes(customer)}
+                                                    onChange={(e) => {
+                                                        if (e.target.checked) {
+                                                            setSelectedCustomerNames([...selectedCustomerNames, customer]);
+                                                        } else {
+                                                            setSelectedCustomerNames(selectedCustomerNames.filter(c => c !== customer));
+                                                        }
+                                                    }}
+                                                    className="rounded"
+                                                />
+                                                <span className="text-sm">{customer}</span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                            {selectedCustomerNames.length > 0 && (
+                                <span className="text-xs text-text-secondary">({selectedCustomerNames.length})</span>
+                            )}
+                            {selectedCustomerNames.length > 0 && (
+                                <button
+                                    onClick={() => setSelectedCustomerNames([])}
+                                    className="text-xs text-accent hover:underline"
+                                >
+                                    Clear
+                                </button>
+                            )}
+                            <button
+                                onClick={() => setIsCustomerModalOpen(true)}
+                                className="px-3 py-1.5 text-sm bg-background border border-secondary/20 rounded-md hover:bg-secondary/30 font-bold"
+                                title="Advanced customer selection"
+                            >
+                                ...
+                            </button>
+                        </div>
+
+                        {/* KPI Metrics - Inline on right */}
+                        <div className="flex items-center gap-4 text-sm ml-auto">
+                            <div className="flex items-center gap-2">
+                                <span className="text-text-secondary">Records:</span>
+                                <span className="font-semibold" style={{ color: `rgb(${theme.colors.accent})` }}>
+                                    {kpiData.totalRecords.toLocaleString()}
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-text-secondary">Countries:</span>
+                                <span className="font-semibold" style={{ color: `rgb(${theme.colors.info})` }}>
+                                    {kpiData.uniqueCountries}
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-text-secondary">Customers:</span>
+                                <span className="font-semibold" style={{ color: `rgb(${theme.colors.success})` }}>
+                                    {kpiData.uniqueCustomers.toLocaleString()}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {selectedQuery !== REVENUE_BY_CUSTOMER_CODE && selectedQuery !== 'total_revenue' && selectedQuery !== 'customer_revenue' && (
                 <div className="bg-surface p-4 rounded-lg shadow-md mb-6">
                      <div className="flex justify-between items-center mb-4">
@@ -2569,7 +3449,7 @@ const MigrationDashboard: React.FC = () => {
                             </label>
                         </div>
                     </div>
-                    <ResponsiveContainer width="100%" height={300}>
+                    <ResponsiveContainer width="100%" height={450}>
                         <ComposedChart data={monthlyTrendData.data} margin={{ top: 5, right: 60, left: 80, bottom: 5 }}>
                             <CartesianGrid stroke={`rgb(${theme.colors['text-secondary']}/0.1)`} />
                             <XAxis dataKey="month" stroke={`rgb(${theme.colors['text-secondary']})`} fontSize={12} />
@@ -2627,6 +3507,169 @@ const MigrationDashboard: React.FC = () => {
                     {renderChartsForQuery()}
                 </div>
             </div>
+
+            {/* Customer Selection Modal */}
+            {isCustomerModalOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4" onClick={() => setIsCustomerModalOpen(false)}>
+                    <div className="bg-surface p-4 sm:p-6 rounded-lg shadow-2xl w-full max-w-[900px] max-h-[90vh] flex flex-col border border-secondary/20" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex justify-between items-center mb-4 flex-shrink-0">
+                            <h3 className="text-lg font-semibold">Select Customers</h3>
+                            <button onClick={() => setIsCustomerModalOpen(false)} className="text-text-secondary hover:text-text-primary text-2xl leading-none">✕</button>
+                        </div>
+
+                        {/* Loading indicator for customer list */}
+                        {allAvailableCustomers.length === 0 && loadingState.phase !== 'complete' ? (
+                            <div className="flex flex-col items-center justify-center gap-4 py-20">
+                                <div className="w-12 h-12 border-4 border-accent/30 border-t-accent rounded-full animate-spin"></div>
+                                <p className="text-text-secondary">Loading customer list... (150k+ customers)</p>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-[1fr_auto_1fr] gap-2 sm:gap-4 flex-1 overflow-hidden" style={{minHeight: 0}}>
+                                {/* Available Customers - Left Side */}
+                                <div className="flex flex-col border border-secondary/20 rounded-md overflow-hidden">
+                                    <div className="p-3 border-b border-secondary/20 bg-background flex-shrink-0">
+                                        <div className="flex justify-between items-center mb-2">
+                                            <h4 className="text-sm font-medium">Available Customers</h4>
+                                            <span className="text-xs text-text-secondary">
+                                                ({allAvailableCustomers.filter(c => !modalSelectedCustomers.includes(c) && (modalCustomerSearch ? c.toLowerCase().includes(modalCustomerSearch.toLowerCase()) : true)).length})
+                                            </span>
+                                        </div>
+                                        <input
+                                            type="text"
+                                            placeholder="Search customers..."
+                                            value={modalCustomerSearch}
+                                            onChange={(e) => setModalCustomerSearch(e.target.value)}
+                                            className="w-full bg-surface border border-secondary/20 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-accent"
+                                        />
+                                    </div>
+                                    <div className="flex-1 relative">
+                                        {allAvailableCustomers.filter(c => !modalSelectedCustomers.includes(c)).filter(c => modalCustomerSearch ? c.toLowerCase().includes(modalCustomerSearch.toLowerCase()) : true).length > 1000 && (
+                                            <div className="absolute top-0 left-0 right-0 bg-warning/10 border-b border-warning/30 p-2 z-10">
+                                                <p className="text-xs text-warning">Large list ({allAvailableCustomers.filter(c => !modalSelectedCustomers.includes(c)).length.toLocaleString()} customers) - use search to filter</p>
+                                            </div>
+                                        )}
+                                        <select
+                                            multiple
+                                            value={modalAvailableSelected}
+                                            onChange={(e) => {
+                                                const selected = Array.from(e.target.selectedOptions, option => option.value);
+                                                setModalAvailableSelected(selected);
+                                            }}
+                                            className="w-full h-full bg-background border-0 text-sm focus:outline-none p-2 overflow-y-auto"
+                                            style={{minHeight: 0}}
+                                        >
+                                            {allAvailableCustomers
+                                                .filter(c => !modalSelectedCustomers.includes(c))
+                                                .filter(c => modalCustomerSearch ? c.toLowerCase().includes(modalCustomerSearch.toLowerCase()) : true)
+                                                .map(customer => (
+                                                    <option key={customer} value={customer} className="py-1 px-2">
+                                                        {customer}
+                                                    </option>
+                                                ))}
+                                        </select>
+                                    </div>
+                                </div>
+
+                            {/* Move Buttons - Center */}
+                            <div className="flex flex-col justify-center gap-2">
+                                <button
+                                    onClick={() => {
+                                        const filtered = allAvailableCustomers.filter(c =>
+                                            !modalSelectedCustomers.includes(c) &&
+                                            (modalCustomerSearch ? c.toLowerCase().includes(modalCustomerSearch.toLowerCase()) : true)
+                                        );
+                                        setModalSelectedCustomers([...modalSelectedCustomers, ...filtered]);
+                                        setModalAvailableSelected([]);
+                                    }}
+                                    className="px-3 py-2 bg-accent text-white rounded hover:bg-accent/80 text-sm"
+                                    title="Move all to selected"
+                                >
+                                    &gt;&gt;
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setModalSelectedCustomers([...modalSelectedCustomers, ...modalAvailableSelected]);
+                                        setModalAvailableSelected([]);
+                                    }}
+                                    disabled={modalAvailableSelected.length === 0}
+                                    className="px-3 py-2 bg-accent/70 text-white rounded hover:bg-accent/80 text-sm disabled:opacity-30 disabled:cursor-not-allowed"
+                                    title="Move selected to right"
+                                >
+                                    &gt;
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setModalSelectedCustomers(modalSelectedCustomers.filter(c => !modalRightSelected.includes(c)));
+                                        setModalRightSelected([]);
+                                    }}
+                                    disabled={modalRightSelected.length === 0}
+                                    className="px-3 py-2 bg-secondary/50 rounded hover:bg-secondary/70 text-sm disabled:opacity-30 disabled:cursor-not-allowed"
+                                    title="Move selected to left"
+                                >
+                                    &lt;
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setModalSelectedCustomers([]);
+                                        setModalRightSelected([]);
+                                    }}
+                                    className="px-3 py-2 bg-secondary/30 rounded hover:bg-secondary/50 text-sm"
+                                    title="Move all to available"
+                                >
+                                    &lt;&lt;
+                                </button>
+                            </div>
+
+                            {/* Selected Customers - Right Side */}
+                            <div className="flex flex-col border border-secondary/20 rounded-md overflow-hidden">
+                                <div className="p-3 border-b border-secondary/20 bg-background flex-shrink-0">
+                                    <h4 className="text-sm font-medium">Selected Customers ({modalSelectedCustomers.length})</h4>
+                                </div>
+                                <select
+                                    multiple
+                                    value={modalRightSelected}
+                                    onChange={(e) => {
+                                        const selected = Array.from(e.target.selectedOptions, option => option.value);
+                                        setModalRightSelected(selected);
+                                    }}
+                                    className="flex-1 w-full bg-background border-0 text-sm focus:outline-none p-2 overflow-y-auto"
+                                    style={{minHeight: 0}}
+                                >
+                                    {modalSelectedCustomers.map(customer => (
+                                        <option key={customer} value={customer} className="py-1 px-2">
+                                            {customer}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+                        )}
+
+                        {/* Modal Actions */}
+                        <div className="flex justify-end gap-3 mt-4 flex-shrink-0 border-t border-secondary/20 pt-4">
+                            <button
+                                onClick={() => {
+                                    setIsCustomerModalOpen(false);
+                                    setModalCustomerSearch('');
+                                }}
+                                className="px-4 py-2 bg-secondary/30 rounded hover:bg-secondary/50 text-sm sm:text-base"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setSelectedCustomerNames(modalSelectedCustomers);
+                                    setIsCustomerModalOpen(false);
+                                    setModalCustomerSearch('');
+                                }}
+                                className="px-4 py-2 bg-accent text-white rounded hover:bg-accent/80 text-sm sm:text-base"
+                            >
+                                OK
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

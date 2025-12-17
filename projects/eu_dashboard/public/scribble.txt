@@ -1,0 +1,111 @@
+i need to demo how i did this eu_dashboard in projects/eu_dashboard with the help of Generative AI.
+The literal ask was 'I need you to demo how GenAI helped create the dashboard \ Claude used to improve it.'
+
+Time allocated is 15 minutes. Take me a script how i can do this, like like with this project.
+ see example prompt below. meaybe after creations ask to enhance, or add extra functionality to this app.
+
+Create the presentation script in md format, but be informal and can also be fun.
+create sample prompts we can use, below is just an example:
+
+create a new project in /projects/demoGenAI. Take the 3 most interesting csv files we have in
+ /projects/eu_dashboard/data and copy them over to a subfolder in this new project
+tell me what can we do with these numbers to show in react app.
+We want to publish this on azure as a static web app, so create a github actions flow file
+ for that we will use azure deployment key.
+also add 2 shell scripts, first one create repo on github, and add current files, 
+ask for repo name, check if it already exists, if not create it, then a second shell script file which adds it so git add ., then do a commit message (ask it as input), then push it, tell if successfull or not
+create one md file where you explain the app, how to use each file, how to start this app.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+curl -X get https://kdp-generator-101579419619.europe-southwest1.run.app/health
+
+API_KEY = "test-api-key-12345"  # Set this to your actual API key
+API_KEY = your-secret-api-key-change-this-to-something-random
+
+curl -X POST https://kdp-generator-101579419619.europe-southwest1.run.app/api/upload-and-generate \
+    -H "X-API-Key: your-api-key" \
+    -H "Content-Type: application/json" \
+    -d "{\"markdown_content\": \"$(cat myfile.md | jq -Rs .)\", \"output_name\": \"mybook.pdf\"}"
+
+
+curl -X POST https://kdp-generator-101579419619.europe-southwest1.run.app/api/upload-and-generate \
+    -H "X-API-Key: your-secret-api-key-change-this-to-something-random" \
+    -H "Content-Type: application/json" \
+    -d "{\"markdown_content\": \"$(cat myfile.md | jq -Rs .)\", \"output_name\": \"mybook.pdf\"}"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+query updated # top contries by booking was 6.562.991 and is now 6.563.466
+
+gdpr delete customer
+policy
+what have to do. what aloud to do 
+
+runbook
+masking?
+internal storage/external
+soft delete customer/masking
+
+fqkkjdf kjd
+template.
+
+ai training
+
+Explain why we need to comply to GDPR rules. is it law or rule, what is the benefit for us as Fedex or what is the benefit of the customer. Create 4 GDPR policies, especially for Fedex. each in own chapter. per policy start with summary, why we should adopt this policy. Then a chapter with questions the customer can have related to GDPR and what is the best answer. Then chapter about what is indeed aloud according to law, even if customer wants it.  A runbook, checklist. What ToDo to implement a common policy for the Company, who should be responsible for what,department IT, business departments etc. and what else you might think of
+
+Explain why we need to comply to GDPR rules. is it law or rule, what is the benefit for us as Fedex or what is the benefit of the customer. Create few generate overall GDPR policies, for Fedex. each in own chapter. per policy start with summary, why we should adopt this policy. Also focus on the question what if customer contact us to remove some information of them what can we expect, what are we aloud to keep as data, what is valid request from customer. Then a chapter with questions the customer can have related to GDPR and what is the best answer. Then chapter about what is indeed aloud according to law, even if customer wants it.  A runbook, checklist. What ToDo to implement a common policy for the Company, who should be responsible for what,department IT, business departments etc. and what else you might think of
